@@ -9,7 +9,12 @@ import (
 
 	_dir "github.com/vekio/fs/dir"
 	_file "github.com/vekio/fs/file"
+	"gopkg.in/yaml.v3"
 )
+
+type Validatable interface {
+	Validate() error
+}
 
 // Config manages configuration files for an application.
 type Config struct {
@@ -88,6 +93,22 @@ func (c *Config) SoftInit() error {
 	}
 	if !exists {
 		return c.Init()
+	}
+	return nil
+}
+
+func (c *Config) Load(data Validatable) error {
+	buf, err := c.Content()
+	if err != nil {
+		return err
+	}
+	// Deserialize the configuration file.
+	if err := yaml.Unmarshal(buf, data); err != nil {
+		return err
+	}
+	// Validate configuration data.
+	if err := data.Validate(); err != nil {
+		return err
 	}
 	return nil
 }
