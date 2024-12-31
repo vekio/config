@@ -23,7 +23,7 @@ type Config struct {
 	file    string // Configuration file name
 }
 
-func newConfig() *Config {
+func NewConfig() *Config {
 	// Extract the executable name from the first argument
 	appName := filepath.Base(os.Args[0])
 
