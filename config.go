@@ -12,103 +12,120 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type Validatable interface {
-	Validate() error
-}
+// DefaultConfigFileName is the default file name for the application configuration.
+var DefaultConfigFileName = "config.yml"
 
-// Config manages configuration files for an application.
+// Config manages configuration files for an application
 type Config struct {
-	appName string // Name of the application
-	dir     string // Directory where the config files are stored
-	file    string // Configuration file name
+	appName  string // Name of the application
+	dir      string // Directory where the configuration file is stored
+	fileName string // Configuration file name
 }
 
+// NewConfig returns a new Config.
+// It initializes the configuration with the appropriate user config directory
+// and file name based on the environment.
 func NewConfig() *Config {
-	// Extract the executable name from the first argument
 	appName := filepath.Base(os.Args[0])
 
-	// User config directory
+	// Retrieve the user configuration directory
 	dir, err := os.UserConfigDir()
 	if err != nil {
-		log.Fatalf("failed to get user config directory: %s", err)
+		log.Fatalf("error retrieving user config directory: %v", err)
 	}
 
-	// Check for the app environment variable
-	envValue := os.Getenv(fmt.Sprintf("%s_ENV", strings.ToUpper(appName)))
-	configFile := "config.yml"
-
-	if envValue != "" && envValue == "develop" {
-		configFile = "config.dev.yml"
-	}
+	// Determine the file name based on the environment variable
+	fileName := envConfigFileName(appName, DefaultConfigFileName)
 
 	c := &Config{
-		dir:     dir,
-		appName: appName,
-		file:    configFile,
+		dir:      dir,
+		appName:  appName,
+		fileName: fileName,
 	}
 	return c
 }
 
+// AppName returns the name of the application.
 func (c *Config) AppName() string {
 	return c.appName
 }
 
+// DirPath returns the full directory path where the application's configuration files are stored.
+// It combines the configuration directory and the application's name.
 func (c *Config) DirPath() string {
 	return filepath.Join(c.dir, c.appName)
 }
 
+// Path constructs and returns the full path to the configuration file.
+// It combines the directory path and the file name.
 func (c *Config) Path() string {
-	return filepath.Join(c.DirPath(), c.file)
+	return filepath.Join(c.DirPath(), c.fileName)
 }
 
+// Content reads and returns the content of the configuration file.
+// It returns an error if the file cannot be read.
 func (c *Config) Content() ([]byte, error) {
-	return os.ReadFile(c.Path())
+	return _file.ReadFile(c.Path())
 }
 
-func (c *Config) Init() error {
-	err := _dir.EnsureDir(c.DirPath(), _dir.DefaultDirPerms)
-	if err != nil {
-		return err
+// Init initializes the configuration by ensuring that the directory and file exist,
+// and by writing the initial configuration data to the file.
+func (c *Config) Init(data interface{}) error {
+	if err := _dir.EnsureDir(c.DirPath(), _dir.DefaultDirPerms); err != nil {
+		return fmt.Errorf("failed to ensure directory: %v", err)
 	}
 	if err := _file.CreateFile(c.Path(), _file.DefaultFilePerms); err != nil {
-		return err
+		return fmt.Errorf("failed to create file: %v", err)
 	}
-	// TODO writing default configuration as YAML
-	// defaultConfig := new(T) // Create a zero value for T to marshal into YAML
-	// data, err := yaml.Marshal(defaultConfig)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to marshal default config: %w", err)
-	// }
-	// _, err = file.Write(data)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to write default config to file %s: %w", cm.Path(), err)
-	// }
-	return nil
+	return c.writeDataToFile(data)
 }
 
-func (c *Config) SoftInit() error {
+// SoftInit attempts to initialize the configuration by loading existing data or creating new configuration.
+// It reads the configuration if the file exists or initializes it if it does not.
+func (c *Config) SoftInit(data interface{}) error {
 	exists, err := _file.FileExists(c.Path())
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to check if file exists: %v", err)
 	}
 	if !exists {
-		return c.Init()
+		return c.Init(data)
+	}
+	return c.loadDataFromFile(data)
+}
+
+// writeDataToFile marshals data to YAML and writes it to the configuration file.
+func (c *Config) writeDataToFile(data interface{}) error {
+	buf, err := yaml.Marshal(data)
+	if err != nil {
+		return fmt.Errorf("failed to marshal data: %v", err)
+	}
+	if err := _file.WriteFileContent(c.Path(), buf, _file.RestrictedFilePerms); err != nil {
+		return fmt.Errorf("failed to write data to file: %v", err)
 	}
 	return nil
 }
 
-func (c *Config) Load(data Validatable) error {
-	buf, err := c.Content()
+// loadDataFromFile reads the configuration from the file and unmarshals it into the data structure.
+func (c *Config) loadDataFromFile(data interface{}) error {
+	buf, err := os.ReadFile(c.Path())
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read file: %v", err)
 	}
-	// Deserialize the configuration file.
 	if err := yaml.Unmarshal(buf, data); err != nil {
-		return err
-	}
-	// Validate configuration data.
-	if err := data.Validate(); err != nil {
-		return err
+		return fmt.Errorf("failed to unmarshal data: %v", err)
 	}
 	return nil
+}
+
+// envConfigFileName constructs the configuration file name based on the environment.
+// It adjusts the file name to include an environment descriptor if specified.
+func envConfigFileName(appName, configFileName string) string {
+	envValue := os.Getenv(fmt.Sprintf("%s_ENV", strings.ToUpper(appName)))
+	if envValue != "" {
+		configFileNameSplited := strings.Split(configFileName, ".")
+		if len(configFileNameSplited) > 1 {
+			return fmt.Sprintf("%s.%s.%s", configFileNameSplited[0], strings.ToLower(envValue), strings.Join(configFileNameSplited[1:], "."))
+		}
+	}
+	return configFileName
 }
