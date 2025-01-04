@@ -9,7 +9,7 @@ import (
 	_file "github.com/vekio/fs/file"
 )
 
-func NewCmdEdit(config *c.Config) *cli.Command {
+func NewCmdEdit[T any](config *c.Config[T]) *cli.Command {
 	cmd := &cli.Command{
 		Name:  "edit",
 		Usage: "edit configuration file",
@@ -21,6 +21,5 @@ func NewCmdEdit(config *c.Config) *cli.Command {
 			return nil
 		},
 	}
-
 	return cmd
 }

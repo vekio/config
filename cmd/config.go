@@ -9,7 +9,7 @@ import (
 	cmdShow "github.com/vekio/config/cmd/show"
 )
 
-func NewCmdConfig(config *c.Config) *cli.Command {
+func NewCmdConfig[T any](config *c.Config[T]) *cli.Command {
 	cmd := &cli.Command{
 		Name:  "conf",
 		Usage: fmt.Sprintf("configuration for %s", config.AppName()),
@@ -18,6 +18,5 @@ func NewCmdConfig(config *c.Config) *cli.Command {
 			cmdEdit.NewCmdEdit(config),
 		},
 	}
-
 	return cmd
 }

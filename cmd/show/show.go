@@ -8,7 +8,7 @@ import (
 	c "github.com/vekio/config"
 )
 
-func NewCmdShow(config *c.Config) *cli.Command {
+func NewCmdShow[T any](config *c.Config[T]) *cli.Command {
 	cmd := &cli.Command{
 		Name:  "edit",
 		Usage: "edit configuration file",
@@ -21,6 +21,5 @@ func NewCmdShow(config *c.Config) *cli.Command {
 			return nil
 		},
 	}
-
 	return cmd
 }
