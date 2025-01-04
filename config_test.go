@@ -4,11 +4,9 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-
-	"gopkg.in/yaml.v3"
 )
 
-type MockConfig struct {
+type TestConfig struct {
 	Database struct {
 		Host string `yaml:"host"`
 		Port int    `yaml:"port"`
@@ -23,7 +21,7 @@ func TestConfigPaths(t *testing.T) {
 	}
 
 	// Initialize configuration and check if it reflects the expected values
-	conf := NewConfig()
+	conf := NewConfig[TestConfig]()
 	expectedAppName := filepath.Base(os.Args[0])
 	if conf.AppName() != expectedAppName {
 		t.Errorf("Expected AppName to be %s, got %s", expectedAppName, conf.AppName())
@@ -42,72 +40,54 @@ func TestConfigPaths(t *testing.T) {
 
 // TestConfigContentAndInit verifies the initialization and content retrieval from the configuration file.
 func TestConfigContentAndInit(t *testing.T) {
-	conf := NewConfig()
+	conf := NewConfig[TestConfig]()
 	defer os.Remove(conf.Path()) // Ensure cleanup after the test
 
 	// Prepare test data for the configuration initialization
-	initialData := MockConfig{}
+	initialData := TestConfig{}
 	initialData.Database.Host = "localhost"
 	initialData.Database.Port = 5432
 
-	err := conf.Init(&initialData)
+	err := conf.Init(initialData)
 	if err != nil {
 		t.Fatalf("Failed to initialize configuration file: %v", err)
 	}
 
 	// Read and verify the configuration content
-	readAndVerifiyContent(t, conf, initialData)
+	readAndVerifyData(t, conf, initialData)
 }
 
 // TestConfigSoftInit verifies the soft initialization of the configuration,
 // ensuring it can handle both the creation and loading of configuration data.
 func TestConfigSoftInit(t *testing.T) {
-	conf := NewConfig()
-	defer os.Remove(conf.Path()) // Ensure cleanup after the test
+	conf := NewConfig[TestConfig]() // Create a new configuration instance for MockConfig
+	defer os.Remove(conf.Path())    // Ensure cleanup after the test
 
-	// Ensure the configuration file does not exist initially
-	os.Remove(conf.Path())
-
-	// Initial data setup for the test
-	initialData := MockConfig{}
+	// Prepare test data for the configuration initialization
+	initialData := TestConfig{}
 	initialData.Database.Host = "localhost"
 	initialData.Database.Port = 5432
 
-	err := conf.SoftInit(&initialData)
+	// Attempt to load or initialize
+	err := conf.Init(initialData)
 	if err != nil {
-		t.Fatalf("Failed to soft initialize configuration file: %v", err)
+		t.Fatalf("Failed to initialize configuration file: %v", err)
 	}
 
-	// Read and verify the configuration content
-	readAndVerifiyContent(t, conf, initialData)
+	// Read and verify the configuration data
+	readAndVerifyData(t, conf, initialData)
 
-	// Setup for verifying soft data loading behavior
-	modifiedData := MockConfig{}
-	modifiedData.Database.Host = "localhost"
-	modifiedData.Database.Port = 3306 // Change of port to verify loading
-
-	err = conf.SoftInit(&modifiedData)
+	err = conf.SoftInit()
 	if err != nil {
-		t.Fatalf("Failed to soft initialize existing configuration file: %v", err)
+		t.Fatalf("SoftInit failed: %v", err)
 	}
 
-	// Ensure that the data is consistent and was not altered unexpectedly
-	if modifiedData.Database.Port != initialData.Database.Port {
-		t.Errorf("Expected port to be %v, got %v", 5432, modifiedData.Database.Port)
-	}
+	// Read and verify the configuration data
+	readAndVerifyData(t, conf, initialData)
 }
 
-func readAndVerifiyContent(t *testing.T, conf *Config, initialData MockConfig) {
-	content, err := conf.Content()
-	if err != nil {
-		t.Fatalf("Failed to read configuration content: %v", err)
-	}
-
-	var readData MockConfig
-	err = yaml.Unmarshal(content, &readData)
-	if err != nil {
-		t.Fatalf("Failed to unmarshal configuration content: %v", err)
-	}
+func readAndVerifyData(t *testing.T, conf *Config[TestConfig], initialData TestConfig) {
+	var readData = conf.Data()
 
 	if readData.Database.Host != initialData.Database.Host || readData.Database.Port != initialData.Database.Port {
 		t.Errorf("Configuration content does not match expected values")
