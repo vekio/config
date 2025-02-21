@@ -8,10 +8,10 @@ import (
 	c "github.com/vekio/config"
 )
 
-func NewCmdShow[T any](config *c.Config[T]) *cli.Command {
+func NewCmdShow[T c.Validatable](config *c.ConfigFile[T]) *cli.Command {
 	cmd := &cli.Command{
-		Name:  "edit",
-		Usage: "edit configuration file",
+		Name:  "show",
+		Usage: "show configuration file content",
 		Action: func(context.Context, *cli.Command) error {
 			buf, err := config.Content()
 			if err != nil {
