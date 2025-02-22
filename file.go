@@ -69,7 +69,7 @@ func (c *ConfigFile[T]) SoftInit() error {
 		return c.Init(c.defaultData)
 	}
 
-	err = c.fileManager.LoadDataFromFile(c.Path(), c.data)
+	err = c.fileManager.LoadDataFromFile(c.Path(), &c.data)
 	if err != nil {
 		return err
 	}

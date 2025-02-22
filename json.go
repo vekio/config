@@ -14,12 +14,12 @@ func NewJSONFileManager[T any]() *JSONFileManager[T] {
 	return &JSONFileManager[T]{}
 }
 
-func (b *JSONFileManager[T]) LoadDataFromFile(filePath string, data T) error {
+func (b *JSONFileManager[T]) LoadDataFromFile(filePath string, data *T) error {
 	buf, err := _file.ReadFile(filePath)
 	if err != nil {
 		return err
 	}
-	if err := json.Unmarshal(buf, &data); err != nil {
+	if err := json.Unmarshal(buf, data); err != nil {
 		return fmt.Errorf("error unmarshaling JSON data: %w", err)
 	}
 	return nil

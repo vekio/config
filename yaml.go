@@ -14,12 +14,12 @@ func NewYAMLFileManager[T any]() *YAMLFileManager[T] {
 	return &YAMLFileManager[T]{}
 }
 
-func (b *YAMLFileManager[T]) LoadDataFromFile(filePath string, data T) error {
+func (b *YAMLFileManager[T]) LoadDataFromFile(filePath string, data *T) error {
 	buf, err := _file.ReadFile(filePath)
 	if err != nil {
 		return err
 	}
-	if err := yaml.Unmarshal(buf, &data); err != nil {
+	if err := yaml.Unmarshal(buf, data); err != nil {
 		return fmt.Errorf("error unmarshaling YAML data: %w", err)
 	}
 	return nil
