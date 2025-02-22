@@ -1,4 +1,4 @@
-package edit
+package cmd
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	_file "github.com/vekio/fs/file"
 )
 
-func NewCmdEdit[T c.Validatable](config *c.ConfigFile[T]) *cli.Command {
+func NewCmdEdit[T c.Validatable](config c.ConfigFile[T]) *cli.Command {
 	cmd := &cli.Command{
 		Name:  "edit",
 		Usage: "edit configuration file",

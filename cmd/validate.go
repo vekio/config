@@ -1,4 +1,4 @@
-package validate
+package cmd
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	c "github.com/vekio/config"
 )
 
-func NewCmdValidate[T c.Validatable](config *c.ConfigFile[T]) *cli.Command {
+func NewCmdValidate[T c.Validatable](config c.ConfigFile[T]) *cli.Command {
 	return &cli.Command{
 		Name:  "validate",
 		Usage: "validate the configuration file",

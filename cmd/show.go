@@ -1,4 +1,4 @@
-package show
+package cmd
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	c "github.com/vekio/config"
 )
 
-func NewCmdShow[T c.Validatable](config *c.ConfigFile[T]) *cli.Command {
+func NewCmdShow[T c.Validatable](config c.ConfigFile[T]) *cli.Command {
 	cmd := &cli.Command{
 		Name:  "show",
 		Usage: "show configuration file content",
