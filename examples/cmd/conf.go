@@ -17,7 +17,7 @@ func main() {
 	}
 	defer os.RemoveAll(config.DirPath())
 
-	cmd := cmdConf.NewCmdConfig(&config.ConfigFile)
+	cmd := cmdConf.NewCmdConfig(config.ConfigFile)
 	cmd.Run(context.Background(), os.Args)
 }
 
