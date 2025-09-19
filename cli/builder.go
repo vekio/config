@@ -11,6 +11,20 @@ type CLIConfig[T c.Validatable] struct {
 	Command *cli.Command
 }
 
+// AddSubcommands appends additional CLI commands under the "conf" namespace.
+func (c *CLIConfig[T]) AddSubcommands(commands ...*cli.Command) {
+	if c == nil || c.Command == nil || len(commands) == 0 {
+		return
+	}
+
+	for _, command := range commands {
+		if command == nil {
+			continue
+		}
+		c.Command.Commands = append(c.Command.Commands, command)
+	}
+}
+
 // NewCLIConfig builds a CLI configuration helper for the provided application.
 func NewCLIConfig[T c.Validatable](appName string, defaults T, options ...c.ConfigFileOption[T]) (*CLIConfig[T], error) {
 	opts := make([]c.ConfigFileOption[T], 0, len(options)+1)
