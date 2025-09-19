@@ -1,5 +1,5 @@
 {
-  description = "conf dev environment";
+  description = "config dev environment";
 
   inputs.nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/0.1.*.tar.gz";
 
@@ -15,9 +15,9 @@
     in {
       devShells = forEachSupportedSystem ({ pkgs }: {
         default = pkgs.mkShell {
-          name = "conf";
+          name = "config";
 
-          packages = with pkgs; [ go gotools ];
+          packages = with pkgs; [ go delve ];
 
           env = { };
 
