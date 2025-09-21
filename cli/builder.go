@@ -1,14 +1,16 @@
 package cli
 
 import (
+	"fmt"
+
 	"github.com/urfave/cli/v3"
 	c "github.com/vekio/config"
 )
 
 // CLIConfig groups the configuration file and CLI command for configuration management.
 type CLIConfig[T c.Validatable] struct {
-	File    *c.ConfigFile[T]
-	Command *cli.Command
+	ConfigFile *c.ConfigFile[T]
+	Command    *cli.Command
 }
 
 // AddSubcommands appends additional CLI commands under the "conf" namespace.
@@ -26,27 +28,23 @@ func (c *CLIConfig[T]) AddSubcommands(commands ...*cli.Command) {
 }
 
 // NewCLIConfig builds a CLI configuration helper for the provided application.
-// The application name defaults to the executable name but can be overridden
-// with config.WithAppName.
-func NewCLIConfig[T c.Validatable](defaults T, options ...c.ConfigFileOption[T]) (*CLIConfig[T], error) {
-	opts := make([]c.ConfigFileOption[T], 0, len(options)+1)
-	opts = append(opts, c.WithDefault(defaults))
-	opts = append(opts, options...)
+// When configFile is nil a default config file is built using the supplied
+// options. The application name defaults to the executable name but can be
+// overridden with config.WithAppName.
+func NewCLIConfig[T c.Validatable](configFile *c.ConfigFile[T]) (*CLIConfig[T], error) {
+	if configFile == nil {
+		return nil, fmt.Errorf("")
+	}
 
-	file, err := c.NewDefaultConfigFile(opts...)
-	if err != nil {
+	if err := configFile.SoftInit(); err != nil {
 		return nil, err
 	}
 
-	if err := file.SoftInit(); err != nil {
-		return nil, err
-	}
-
-	cmd := newCmdConfig(file)
+	cmd := newCmdConfig(configFile)
 
 	return &CLIConfig[T]{
-		File:    file,
-		Command: cmd,
+		ConfigFile: configFile,
+		Command:    cmd,
 	}, nil
 }
 
