@@ -50,5 +50,5 @@ func NewDefaultConfigFile[T Validatable](appName string, options ...ConfigFileOp
 		// return nil, fmt.Errorf("error retrieving user config directory: %w", err)
 		dir = os.TempDir()
 	}
-	return NewYAMLConfigFile[T](dir, DefaultConfigFileName, appName, options...)
+	return NewYAMLConfigFile(dir, DefaultConfigFileName, appName, options...)
 }
