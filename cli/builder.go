@@ -26,12 +26,14 @@ func (c *CLIConfig[T]) AddSubcommands(commands ...*cli.Command) {
 }
 
 // NewCLIConfig builds a CLI configuration helper for the provided application.
-func NewCLIConfig[T c.Validatable](appName string, defaults T, options ...c.ConfigFileOption[T]) (*CLIConfig[T], error) {
+// The application name defaults to the executable name but can be overridden
+// with config.WithAppName.
+func NewCLIConfig[T c.Validatable](defaults T, options ...c.ConfigFileOption[T]) (*CLIConfig[T], error) {
 	opts := make([]c.ConfigFileOption[T], 0, len(options)+1)
 	opts = append(opts, c.WithDefault(defaults))
 	opts = append(opts, options...)
 
-	file, err := c.NewDefaultConfigFile(appName, opts...)
+	file, err := c.NewDefaultConfigFile(opts...)
 	if err != nil {
 		return nil, err
 	}

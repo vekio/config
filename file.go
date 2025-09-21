@@ -36,7 +36,8 @@ func (c *ConfigFile[T]) DirPath() string {
 // Path constructs and returns the full path to the configuration file.
 // It combines the directory path and the file name.
 func (c *ConfigFile[T]) Path() string {
-	return filepath.Join(c.DirPath(), c.fileName)
+	fileName := getFileNameForEnvironment(c.DirPath(), c.appName, c.fileName)
+	return filepath.Join(c.DirPath(), fileName)
 }
 
 // Content reads and returns the content of the configuration file.
@@ -98,24 +99,27 @@ func (c *ConfigFile[T]) SoftInit() error {
 	return nil
 }
 
-// getFileNameForEnvironment returns a variant of the config file name that
-// includes the value of APPNAME_ENV if that environment variable is defined.
-func getFileNameForEnvironment(appName, configFileName string) string {
-	envValue := os.Getenv(fmt.Sprintf("%s_ENV", strings.ToUpper(appName)))
-	if envValue != "" {
-		configFileNameSplited := strings.Split(configFileName, ".")
-		if len(configFileNameSplited) > 1 {
-			return fmt.Sprintf("%s.%s.%s", configFileNameSplited[0], strings.ToLower(envValue), strings.Join(configFileNameSplited[1:], "."))
-		}
+// getFileNameForEnvironment
+func getFileNameForEnvironment(dirPath, appName, configFileName string) string {
+	envVarName := fmt.Sprintf("%s_ENV", strings.ToUpper(appName))
+	envValue := strings.TrimSpace(os.Getenv(envVarName))
+	if envValue == "" || strings.EqualFold(envValue, "pro") {
+		return configFileName
 	}
-	return configFileName
-}
 
-// validateConfigParams ensures that the minimal configuration parameters were
-// provided before building a ConfigFile instance.
-func validateConfigParams(path, fileName, appName string) error {
-	if path == "" || fileName == "" || appName == "" {
-		return fmt.Errorf("path, fileName, and appName must not be empty")
+	base := filepath.Base(configFileName)
+	extension := filepath.Ext(configFileName)
+	lowerEnv := strings.ToLower(envValue)
+	candidateFileName := fmt.Sprintf("%s.%s.%s", base, lowerEnv, extension)
+
+	candidatePath := filepath.Join(dirPath, candidateFileName)
+	exists, err := file.Exists(candidatePath)
+	if err != nil {
+		return configFileName
 	}
-	return nil
+	if exists {
+		return candidateFileName
+	}
+
+	return configFileName
 }

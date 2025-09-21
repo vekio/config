@@ -1,5 +1,11 @@
 package config
 
+import (
+	"fmt"
+	"path/filepath"
+	"strings"
+)
+
 // ConfigFileOption customizes the behavior of a ConfigFile during construction.
 type ConfigFileOption[T Validatable] func(*ConfigFile[T])
 
@@ -14,29 +20,62 @@ func WithDefault[T Validatable](defaultData T) ConfigFileOption[T] {
 	}
 }
 
+// WithAppName overrides the application identifier used to locate the
+// configuration directory and derive environment-specific overrides.
+func WithAppName[T Validatable](appName string) ConfigFileOption[T] {
+	return func(c *ConfigFile[T]) {
+		if c == nil {
+			return
+		}
+
+		trimmed := strings.TrimSpace(appName)
+		if trimmed == "" {
+			return
+		}
+		c.appName = trimmed
+	}
+}
+
+// WithPath overrides the directory where configuration files are stored. When
+// the provided path is empty the default user configuration directory (or the
+// system temp directory as fallback) is used.
+func WithPath[T Validatable](path string) ConfigFileOption[T] {
+	return func(c *ConfigFile[T]) {
+		if c == nil {
+			return
+		}
+
+		trimmed := strings.TrimSpace(path)
+		if trimmed == "" {
+			return
+		}
+		c.path = trimmed
+	}
+}
+
 // WithFilename overrides the default file name while ensuring it uses the
-// extension that matches the underlying file manager. Environment-specific
-// suffixes are re-applied so the behavior mirrors the default constructors.
+// extension that matches the underlying file manager.
 func WithFilename[T Validatable](fileName string) ConfigFileOption[T] {
 	return func(c *ConfigFile[T]) {
 		if c == nil {
 			return
 		}
 
-		extension := ""
-		if c.fileManager != nil {
-			extension = c.fileManager.Extension()
-		}
-
-		normalized := normalizeFileNameWithExtension(fileName, extension)
-		if normalized == "" {
+		trimmed := strings.TrimSpace(fileName)
+		if trimmed == "" {
 			return
 		}
 
-		if c.appName != "" {
-			normalized = getFileNameForEnvironment(c.appName, normalized)
+		base := filepath.Base(trimmed)
+		if base == "" {
+			return
 		}
 
-		c.fileName = normalized
+		extension := strings.TrimPrefix(c.fileManager.Extension(), ".")
+		if currentExt := filepath.Ext(base); currentExt != "" {
+			base = strings.TrimSuffix(base, currentExt)
+		}
+
+		c.fileName = fmt.Sprintf("%s.%s", base, extension)
 	}
 }
