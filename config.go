@@ -1,54 +1,55 @@
 package config
 
-import "os"
+import (
+	"fmt"
+	"strings"
+)
 
-var DefaultConfigFileName string = "config.yml"
+// NewYAMLConfigFile constructs a ConfigFile that persists data as YAML inside
+// the default configuration directory. The base path can be overridden with
+// WithPath.
+func NewYAMLConfigFile[T Validatable](options ...ConfigFileOption[T]) (*ConfigFile[T], error) {
+	return newConfigFile(NewYAMLFileManager[T](), options...)
+}
 
-func NewYAMLConfigFile[T Validatable](path, fileName, appName string, options ...ConfigFileOption[T]) (*ConfigFile[T], error) {
-	if err := validateConfigParams(path, fileName, appName); err != nil {
-		return nil, err
+// NewJSONConfigFile constructs a ConfigFile that persists data as JSON inside
+// the default configuration directory. The base path can be overridden with
+// WithPath.
+func NewJSONConfigFile[T Validatable](options ...ConfigFileOption[T]) (*ConfigFile[T], error) {
+	return newConfigFile(NewJSONFileManager[T](), options...)
+}
+
+// NewDefaultConfigFile builds a YAML configuration backed by the user's
+// configuration directory (falling back to the OS temp dir when unavailable).
+func NewDefaultConfigFile[T Validatable](options ...ConfigFileOption[T]) (*ConfigFile[T], error) {
+	return NewYAMLConfigFile(options...)
+}
+
+func newConfigFile[T Validatable](manager FileManager[T], options ...ConfigFileOption[T]) (*ConfigFile[T], error) {
+	if manager == nil {
+		return nil, fmt.Errorf("config: file manager must not be nil")
 	}
 
-	finalFileName := getFileNameForEnvironment(appName, fileName)
+	extension := strings.TrimPrefix(manager.Extension(), ".")
+
+	fileName := "config"
+	if extension != "" {
+		fileName = fmt.Sprintf("%s.%s", fileName, extension)
+	}
+
 	c := &ConfigFile[T]{
-		fileManager: NewYAMLFileManager[T](),
-		fileName:    finalFileName,
-		path:        path,
-		appName:     appName,
+		fileManager: manager,
+		appName:     defaultAppName(),
+		path:        defaultConfigPath(),
+		fileName:    fileName,
 		defaultData: *new(T),
 	}
 
 	for _, option := range options {
-		option(c)
+		if option != nil {
+			option(c)
+		}
 	}
+
 	return c, nil
-}
-
-func NewJSONConfigFile[T Validatable](path, fileName, appName string, options ...ConfigFileOption[T]) (*ConfigFile[T], error) {
-	if err := validateConfigParams(path, fileName, appName); err != nil {
-		return nil, err
-	}
-
-	finalFileName := getFileNameForEnvironment(appName, fileName)
-	c := &ConfigFile[T]{
-		fileManager: NewJSONFileManager[T](),
-		fileName:    finalFileName,
-		path:        path,
-		appName:     appName,
-		defaultData: *new(T),
-	}
-
-	for _, option := range options {
-		option(c)
-	}
-	return c, nil
-}
-
-func NewDefaultConfigFile[T Validatable](appName string, options ...ConfigFileOption[T]) (*ConfigFile[T], error) {
-	dir, err := os.UserConfigDir()
-	if err != nil {
-		// return nil, fmt.Errorf("error retrieving user config directory: %w", err)
-		dir = os.TempDir()
-	}
-	return NewYAMLConfigFile[T](dir, DefaultConfigFileName, appName, options...)
 }

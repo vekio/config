@@ -1,7 +1,13 @@
 github.com/urfave/cli/v3 v3.0.0-beta1 h1:6DTaaUarcM0wX7qj5Hcvs+5Dm3dyUTBbEwIWAjcw9Zg=
 github.com/urfave/cli/v3 v3.0.0-beta1/go.mod h1:FnIeEMYu+ko8zP1F9Ypr3xkZMIDqW3DR92yUtY39q1Y=
+github.com/urfave/cli/v3 v3.4.1 h1:1M9UOCy5bLmGnuu1yn3t3CB4rG79Rtoxuv1sPhnm6qM=
+github.com/urfave/cli/v3 v3.4.1/go.mod h1:FJSKtM/9AiiTOJL4fJ6TbMUkxBXn7GO9guZqoZtpYpo=
 github.com/vekio/fs v0.5.2 h1:P9kXpzrnoo0zCwR4Z0IQIPw5mBMmIHDtiIRZALUiwW8=
 github.com/vekio/fs v0.5.2/go.mod h1:4MNKl2kPbMK9H2n8M63rQ9HlIxTa66TvMhQJ4n4hSVA=
+github.com/vekio/x/fs v0.0.0-20250918220237-bffeaaaa6f64 h1:rE4XtRoIt12gzqR80eHjfDgKrY8KWg73IGujBJ6RqqI=
+github.com/vekio/x/fs v0.0.0-20250918220237-bffeaaaa6f64/go.mod h1:usvwRzf/PJNKVnRE5kAOUXieTPYPR4ujdG9nfahudME=
+github.com/vekio/x/fs v0.1.0 h1:YG65tjSIrwEVO1d7sX5yK0KM+AD1Hu0K2wVMLm8oqe0=
+github.com/vekio/x/fs v0.1.0/go.mod h1:usvwRzf/PJNKVnRE5kAOUXieTPYPR4ujdG9nfahudME=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
