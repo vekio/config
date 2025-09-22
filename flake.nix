@@ -13,7 +13,7 @@
         devShells.default = pkgs.mkShell {
           name = "config";
 
-          packages = with pkgs; [ go_1_24 delve ];
+          packages = with pkgs; [ go delve ];
 
         };
       });
