@@ -107,10 +107,16 @@ func getFileNameForEnvironment(dirPath, appName, configFileName string) string {
 		return configFileName
 	}
 
-	base := filepath.Base(configFileName)
-	extension := filepath.Ext(configFileName)
+	base := strings.TrimSuffix(filepath.Base(configFileName), filepath.Ext(configFileName))
+	rawExt := filepath.Ext(configFileName)
+	extension := strings.TrimPrefix(rawExt, ".")
 	lowerEnv := strings.ToLower(envValue)
-	candidateFileName := fmt.Sprintf("%s.%s.%s", base, lowerEnv, extension)
+	var candidateFileName string
+	if extension == "" {
+		candidateFileName = fmt.Sprintf("%s.%s", base, lowerEnv)
+	} else {
+		candidateFileName = fmt.Sprintf("%s.%s.%s", base, lowerEnv, extension)
+	}
 
 	candidatePath := filepath.Join(dirPath, candidateFileName)
 	exists, err := file.Exists(candidatePath)
