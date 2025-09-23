@@ -24,7 +24,7 @@ func ConfigFileSingleton[T Validatable]() (*ConfigFile[T], error) {
 	defer configSingletonMu.RUnlock()
 
 	if configSingleton == nil {
-		return nil, fmt.Errorf("config: configuration file not registered; call SoftInit or Init first")
+		return nil, fmt.Errorf("config: configuration file not registered; call NewConfigFile or SetConfigFile first")
 	}
 
 	cfg, ok := configSingleton.(*ConfigFile[T])

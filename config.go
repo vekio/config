@@ -19,12 +19,6 @@ func NewJSONConfigFile[T Validatable](options ...ConfigFileOption[T]) (*ConfigFi
 	return newConfigFile(NewJSONFileManager[T](), options...)
 }
 
-// NewDefaultConfigFile builds a YAML configuration backed by the user's
-// configuration directory (falling back to the OS temp dir when unavailable).
-func NewDefaultConfigFile[T Validatable](options ...ConfigFileOption[T]) (*ConfigFile[T], error) {
-	return NewYAMLConfigFile(options...)
-}
-
 func newConfigFile[T Validatable](manager FileManager[T], options ...ConfigFileOption[T]) (*ConfigFile[T], error) {
 	if manager == nil {
 		return nil, fmt.Errorf("config: file manager must not be nil")
