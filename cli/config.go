@@ -5,9 +5,9 @@ import (
 	c "github.com/vekio/config"
 )
 
-// newCmdConfig wires the configuration management namespace with the
+// NewCmdConfig wires the configuration management namespace with the
 // subcommands that operate on the application's config file.
-func newCmdConfig[T c.Validatable](config *c.ConfigFile[T]) *cli.Command {
+func NewCmdConfig[T c.Validatable](config *c.ConfigFile[T]) *cli.Command {
 	cmd := &cli.Command{
 		Name:        "conf",
 		Usage:       "Manage application's configuration file.",
