@@ -10,13 +10,14 @@ import (
 // newCmdEdit registers the subcommand that opens the managed configuration
 // file in the user's preferred editor. It ensures the file exists before
 // launching the editor so the command can operate on fresh installations.
-func newCmdEdit[T c.Validatable](config *c.ConfigFile[T]) *cli.Command {
+func newCmdEdit[T c.Validatable]() *cli.Command {
 	cmd := &cli.Command{
 		Name:        "edit",
 		Usage:       "Open the configuration file in the preferred editor.",
 		UsageText:   "conf edit",
 		Description: "Creates the configuration file if it does not exist and then launches $VISUAL, $EDITOR, nano, or vi in that order.",
 		Action: func(ctx context.Context, cmd *cli.Command) error {
+			c.MustConfigFile[T]()
 			// TODO create fs/file Edit()
 			// if err := file.Touch(config.Path(), fs.DefaultFileMode); err != nil {
 			// 	return fmt.Errorf("prepare configuration file: %w", err)

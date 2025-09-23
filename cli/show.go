@@ -10,13 +10,14 @@ import (
 
 // newCmdShow builds the subcommand that prints the raw configuration
 // file to stdout so users can quickly inspect the stored values.
-func newCmdShow[T c.Validatable](config *c.ConfigFile[T]) *cli.Command {
+func newCmdShow[T c.Validatable]() *cli.Command {
 	cmd := &cli.Command{
 		Name:        "show",
 		Usage:       "Display the current configuration file contents.",
 		UsageText:   "conf show",
 		Description: "Reads the configuration file from disk and writes its contents to standard output.",
 		Action: func(_ context.Context, cmd *cli.Command) error {
+			config := c.MustConfigFile[T]()
 			buf, err := config.Content()
 			if err != nil {
 				return fmt.Errorf("read configuration: %w", err)

@@ -51,5 +51,7 @@ func newConfigFile[T Validatable](manager FileManager[T], options ...ConfigFileO
 		}
 	}
 
+	SetConfigFile(c)
+
 	return c, nil
 }
