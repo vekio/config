@@ -84,5 +84,10 @@ ejecución y se aplica también a los subcomandos:
 myapp config show --config ./development.yml
 ```
 
+También puede definirse mediante `<APPNAME>_CONFIG_FILE`. Los guiones y puntos
+del nombre de aplicación se convierten en `_`; por ejemplo, `my-app` utiliza
+`MY_APP_CONFIG_FILE`. El flag explícito tiene prioridad sobre la variable de
+entorno.
+
 Hay ejemplos completos para [LoadOrCreate](example/load_or_create/main.go) y
 para la [integración CLI](example/cli/main.go).

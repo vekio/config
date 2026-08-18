@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 
 	urfavecli "github.com/urfave/cli/v3"
 )
@@ -15,12 +16,18 @@ func NewConfigFlag[T Validatable](file *ConfigFile[T]) *urfavecli.StringFlag {
 		Name:        "config",
 		Usage:       "Path to the configuration file",
 		Value:       file.Path(),
+		Sources:     urfavecli.EnvVars(configEnvName(file.appName)),
 		TakesFile:   true,
 		OnlyOnce:    true,
 		Config:      urfavecli.StringConfig{TrimSpace: true},
 		Validator:   validateConfigFlag,
 		Destination: &file.pathOverride,
 	}
+}
+
+func configEnvName(appName string) string {
+	appName = strings.NewReplacer("-", "_", ".", "_").Replace(appName)
+	return strings.ToUpper(appName) + "_CONFIG_FILE"
 }
 
 func validateConfigFlag(path string) error {

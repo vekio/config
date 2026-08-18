@@ -294,3 +294,46 @@ func TestConfigFlagOverridesPathBeforeBeforeHook(t *testing.T) {
 		t.Fatalf("Before loaded %#v, want %#v", loaded, want)
 	}
 }
+
+func TestConfigFlagUsesEnvironmentSource(t *testing.T) {
+	file, err := config.NewYAMLConfigFile[testConfig](t.TempDir(), "my-app", "config.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := filepath.Join(t.TempDir(), "environment.yml")
+	t.Setenv("MY_APP_CONFIG_FILE", want)
+
+	app := &urfavecli.Command{
+		Name:   "app",
+		Flags:  []urfavecli.Flag{config.NewConfigFlag(file)},
+		Action: func(context.Context, *urfavecli.Command) error { return nil },
+	}
+	if err := app.Run(context.Background(), []string{"app"}); err != nil {
+		t.Fatal(err)
+	}
+	if file.Path() != want {
+		t.Fatalf("Path() = %q, want %q", file.Path(), want)
+	}
+}
+
+func TestConfigFlagTakesPrecedenceOverEnvironment(t *testing.T) {
+	file, err := config.NewYAMLConfigFile[testConfig](t.TempDir(), "my.app", "config.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	environmentPath := filepath.Join(t.TempDir(), "environment.yml")
+	flagPath := filepath.Join(t.TempDir(), "flag.yml")
+	t.Setenv("MY_APP_CONFIG_FILE", environmentPath)
+
+	app := &urfavecli.Command{
+		Name:   "app",
+		Flags:  []urfavecli.Flag{config.NewConfigFlag(file)},
+		Action: func(context.Context, *urfavecli.Command) error { return nil },
+	}
+	if err := app.Run(context.Background(), []string{"app", "--config", flagPath}); err != nil {
+		t.Fatal(err)
+	}
+	if file.Path() != flagPath {
+		t.Fatalf("Path() = %q, want %q", file.Path(), flagPath)
+	}
+}
