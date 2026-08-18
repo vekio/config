@@ -226,14 +226,17 @@ func TestConstructorRejectsEmptyBaseDirectory(t *testing.T) {
 	}
 }
 
-func TestConstructorRejectsFileAsBaseDirectory(t *testing.T) {
+func TestSaveRejectsFileAsBaseDirectory(t *testing.T) {
 	baseFile := filepath.Join(t.TempDir(), "not-a-directory")
 	if err := os.WriteFile(baseFile, []byte("content"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	_, err := config.NewYAMLConfigFile[testConfig](baseFile, "example", "config.yml")
-	if err == nil {
-		t.Fatal("constructor accepted a file as its base directory")
+	file, err := config.NewYAMLConfigFile[testConfig](baseFile, "example", "config.yml")
+	if err != nil {
+		t.Fatalf("constructor performed filesystem validation: %v", err)
+	}
+	if err := file.Save(testConfig{Name: "example", Port: 80}); err == nil {
+		t.Fatal("Save() accepted a file as its base directory")
 	}
 }
 

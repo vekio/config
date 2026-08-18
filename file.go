@@ -5,6 +5,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	xfile "github.com/vekio/x/file"
+)
+
+const (
+	defaultDirMode  = 0o700
+	defaultFileMode = 0o600
 )
 
 // ConfigFile wraps the metadata and helpers required to manage one
@@ -65,7 +72,10 @@ func (c *ConfigFile[T]) Save(data T) error {
 	if err != nil {
 		return err
 	}
-	if err := writeFileAtomic(c.Path(), content); err != nil {
+	if err := xfile.EnsureParentDir(c.Path(), defaultDirMode); err != nil {
+		return fmt.Errorf("ensure configuration directory: %w", err)
+	}
+	if err := xfile.WriteAtomic(c.Path(), content, defaultFileMode); err != nil {
 		return fmt.Errorf("write configuration file: %w", err)
 	}
 	return nil
@@ -78,7 +88,10 @@ func (c *ConfigFile[T]) Create(data T) error {
 	if err != nil {
 		return err
 	}
-	if err := writeFileExclusive(c.Path(), content); err != nil {
+	if err := xfile.EnsureParentDir(c.Path(), defaultDirMode); err != nil {
+		return fmt.Errorf("ensure configuration directory: %w", err)
+	}
+	if err := xfile.WriteExclusive(c.Path(), content, defaultFileMode); err != nil {
 		return fmt.Errorf("create configuration file: %w", err)
 	}
 	return nil

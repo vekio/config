@@ -31,7 +31,7 @@ func configEnvName(appName string) string {
 }
 
 func validateConfigFlag(path string) error {
-	if _, err := normalizeFilePath(path); err != nil {
+	if _, err := cleanPath(path); err != nil {
 		return fmt.Errorf("invalid configuration file path: %w", err)
 	}
 	return nil

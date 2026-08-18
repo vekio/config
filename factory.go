@@ -29,7 +29,7 @@ func NewJSONConfigFile[T Validatable](baseDir, appName, fileName string) (*Confi
 }
 
 func newConfigFile[T Validatable](baseDir, appName, fileName string, valueCodec codec[T]) (*ConfigFile[T], error) {
-	baseDir, err := normalizeDirPath(baseDir)
+	baseDir, err := cleanPath(baseDir)
 	if err != nil {
 		return nil, fmt.Errorf("invalid configuration directory: %w", err)
 	}

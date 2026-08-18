@@ -11,7 +11,7 @@ func defaultConfigDir() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("resolve user configuration directory: %w", err)
 	}
-	configDir, err = normalizeDirPath(configDir)
+	configDir, err = cleanPath(configDir)
 	if err != nil {
 		return "", fmt.Errorf("resolve user configuration directory: %w", err)
 	}
@@ -38,7 +38,7 @@ func DefaultDataDir(appName string) (string, error) {
 		}
 		baseDir = filepath.Join(homeDir, ".local", "share")
 	}
-	baseDir, err := normalizeDirPath(baseDir)
+	baseDir, err := cleanPath(baseDir)
 	if err != nil {
 		return "", fmt.Errorf("resolve user data directory: %w", err)
 	}

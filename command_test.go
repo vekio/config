@@ -225,17 +225,21 @@ func TestConfigFlagRejectsEmptyPath(t *testing.T) {
 	}
 }
 
-func TestConfigFlagRejectsDirectory(t *testing.T) {
+func TestConfigFlagDefersFilesystemValidation(t *testing.T) {
 	file, err := config.NewYAMLConfigFile[testConfig](t.TempDir(), "example", "config.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
+	directory := t.TempDir()
 	app := &urfavecli.Command{
 		Name:  "app",
 		Flags: []urfavecli.Flag{config.NewConfigFlag(file)},
 	}
-	if err := app.Run(context.Background(), []string{"app", "--config", t.TempDir()}); err == nil {
-		t.Fatal("--config accepted a directory")
+	if err := app.Run(context.Background(), []string{"app", "--config", directory}); err != nil {
+		t.Fatalf("--config performed filesystem validation: %v", err)
+	}
+	if file.Path() != directory {
+		t.Fatalf("Path() = %q, want %q", file.Path(), directory)
 	}
 }
 
