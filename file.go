@@ -15,7 +15,8 @@ const (
 )
 
 // ConfigFile wraps the metadata and helpers required to manage one
-// application-specific configuration file.
+// application-specific configuration file. It may be used concurrently after
+// its path has been configured.
 type ConfigFile[T Validatable] struct {
 	codec        codec[T]
 	fileName     string
@@ -39,7 +40,8 @@ func (c *ConfigFile[T]) Path() string {
 	return filepath.Join(c.baseDir, c.appName, c.fileName)
 }
 
-// SetPath overrides the conventional configuration file path.
+// SetPath overrides the conventional configuration file path. It must not be
+// called concurrently with any other ConfigFile method.
 func (c *ConfigFile[T]) SetPath(path string) error {
 	path, err := cleanPath(path)
 	if err != nil {

@@ -29,7 +29,7 @@ func (c Config) Validate() error {
     return nil
 }
 
-file, err := config.NewDefaultConfigFile[Config]("myapp")
+file, err := config.NewYAMLConfigFile[Config]("myapp", "config.yml")
 if err != nil {
     return err
 }
@@ -37,13 +37,13 @@ if err != nil {
 cfg, err := file.LoadOrCreate(Config{Address: "127.0.0.1:8080"})
 ----
 
-The default file is `<user-config-dir>/myapp/config.yml`. Explicit YAML and
-JSON constructors are also available:
+Files use `<user-config-dir>/<app-name>/<file-name>`. YAML and JSON formats are
+available:
 
 [source,go]
 ----
-config.NewYAMLConfigFile[Config]("/etc", "myapp", "config.yml")
-config.NewJSONConfigFile[Config]("/etc", "myapp", "config.json")
+config.NewYAMLConfigFile[Config]("myapp", "config.yml")
+config.NewJSONConfigFile[Config]("myapp", "config.json")
 ----
 
 `DefaultDataDir("myapp")` returns the conventional application data directory.

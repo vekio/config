@@ -27,7 +27,7 @@ func (c Config) Validate() error {
 }
 
 func main() {
-	configFile, err := config.NewDefaultConfigFile[Config]("config-example")
+	configFile, err := config.NewYAMLConfigFile[Config]("config-example", "config.yml")
 	if err != nil {
 		log.Fatal(err)
 	}

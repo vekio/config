@@ -6,25 +6,23 @@ import (
 	"strings"
 )
 
-const defaultYAMLFileName = "config.yml"
-
-// NewDefaultConfigFile creates a typed YAML configuration file inside the
-// user's configuration directory.
-func NewDefaultConfigFile[T Validatable](appName string) (*ConfigFile[T], error) {
+// NewYAMLConfigFile creates a typed YAML configuration file inside the user's
+// configuration directory.
+func NewYAMLConfigFile[T Validatable](appName, fileName string) (*ConfigFile[T], error) {
 	baseDir, err := defaultConfigDir()
 	if err != nil {
 		return nil, err
 	}
-	return NewYAMLConfigFile[T](baseDir, appName, defaultYAMLFileName)
-}
-
-// NewYAMLConfigFile creates a typed YAML configuration file.
-func NewYAMLConfigFile[T Validatable](baseDir, appName, fileName string) (*ConfigFile[T], error) {
 	return newConfigFile(baseDir, appName, fileName, yamlCodec[T]{})
 }
 
-// NewJSONConfigFile creates a typed JSON configuration file.
-func NewJSONConfigFile[T Validatable](baseDir, appName, fileName string) (*ConfigFile[T], error) {
+// NewJSONConfigFile creates a typed JSON configuration file inside the user's
+// configuration directory.
+func NewJSONConfigFile[T Validatable](appName, fileName string) (*ConfigFile[T], error) {
+	baseDir, err := defaultConfigDir()
+	if err != nil {
+		return nil, err
+	}
 	return newConfigFile(baseDir, appName, fileName, jsonCodec[T]{})
 }
 

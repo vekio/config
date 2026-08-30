@@ -29,12 +29,23 @@ func (c testConfig) Validate() error {
 	return nil
 }
 
+func newYAMLConfigFileAt[T config.Validatable](baseDir, appName, fileName string) (*config.ConfigFile[T], error) {
+	file, err := config.NewYAMLConfigFile[T](appName, fileName)
+	if err != nil {
+		return nil, err
+	}
+	if err := file.SetPath(filepath.Join(baseDir, appName, fileName)); err != nil {
+		return nil, err
+	}
+	return file, nil
+}
+
 func commandDefault() testConfig {
 	return testConfig{Name: "default", Port: 8080}
 }
 
 func TestConfigShow(t *testing.T) {
-	file, err := config.NewYAMLConfigFile[testConfig](t.TempDir(), "example", "config.yml")
+	file, err := newYAMLConfigFileAt[testConfig](t.TempDir(), "example", "config.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,7 +68,7 @@ func TestConfigShow(t *testing.T) {
 }
 
 func TestConfigDefaultsToHelp(t *testing.T) {
-	file, err := config.NewYAMLConfigFile[testConfig](t.TempDir(), "example", "config.yml")
+	file, err := newYAMLConfigFileAt[testConfig](t.TempDir(), "example", "config.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +92,7 @@ func TestConfigDefaultsToHelp(t *testing.T) {
 
 func TestConfigShowMissingFile(t *testing.T) {
 	baseDir := t.TempDir()
-	file, err := config.NewYAMLConfigFile[testConfig](baseDir, "example", "config.yml")
+	file, err := newYAMLConfigFileAt[testConfig](baseDir, "example", "config.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,11 +109,11 @@ func TestConfigShowMissingFile(t *testing.T) {
 }
 
 func TestConfigFlagOverridesPathForSubcommands(t *testing.T) {
-	file, err := config.NewYAMLConfigFile[testConfig](t.TempDir(), "example", "config.yml")
+	file, err := newYAMLConfigFileAt[testConfig](t.TempDir(), "example", "config.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
-	alternative, err := config.NewYAMLConfigFile[testConfig](t.TempDir(), "other", "custom.yml")
+	alternative, err := newYAMLConfigFileAt[testConfig](t.TempDir(), "other", "custom.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,7 +141,7 @@ func TestConfigFlagOverridesPathForSubcommands(t *testing.T) {
 }
 
 func TestConfigPath(t *testing.T) {
-	file, err := config.NewYAMLConfigFile[testConfig](t.TempDir(), "example", "config.yml")
+	file, err := newYAMLConfigFileAt[testConfig](t.TempDir(), "example", "config.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -151,7 +162,7 @@ func TestConfigPath(t *testing.T) {
 }
 
 func TestConfigValidate(t *testing.T) {
-	file, err := config.NewYAMLConfigFile[testConfig](t.TempDir(), "example", "config.yml")
+	file, err := newYAMLConfigFileAt[testConfig](t.TempDir(), "example", "config.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,7 +184,7 @@ func TestConfigValidate(t *testing.T) {
 }
 
 func TestConfigInitCreatesExclusively(t *testing.T) {
-	file, err := config.NewYAMLConfigFile[testConfig](t.TempDir(), "example", "config.yml")
+	file, err := newYAMLConfigFileAt[testConfig](t.TempDir(), "example", "config.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -201,7 +212,7 @@ func TestConfigInitCreatesExclusively(t *testing.T) {
 }
 
 func TestConfigInitForceReplacesExistingFile(t *testing.T) {
-	file, err := config.NewYAMLConfigFile[testConfig](t.TempDir(), "example", "config.yml")
+	file, err := newYAMLConfigFileAt[testConfig](t.TempDir(), "example", "config.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -228,7 +239,7 @@ func TestConfigInitForceReplacesExistingFile(t *testing.T) {
 }
 
 func TestConfigFlagRejectsEmptyPath(t *testing.T) {
-	file, err := config.NewYAMLConfigFile[testConfig](t.TempDir(), "example", "config.yml")
+	file, err := newYAMLConfigFileAt[testConfig](t.TempDir(), "example", "config.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -242,7 +253,7 @@ func TestConfigFlagRejectsEmptyPath(t *testing.T) {
 }
 
 func TestConfigFlagDocumentsEnvironmentVariable(t *testing.T) {
-	file, err := config.NewYAMLConfigFile[testConfig](t.TempDir(), "my-app", "config.yml")
+	file, err := newYAMLConfigFileAt[testConfig](t.TempDir(), "my-app", "config.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -261,7 +272,7 @@ func TestConfigFlagDocumentsEnvironmentVariable(t *testing.T) {
 }
 
 func TestConfigFlagDefersFilesystemValidation(t *testing.T) {
-	file, err := config.NewYAMLConfigFile[testConfig](t.TempDir(), "example", "config.yml")
+	file, err := newYAMLConfigFileAt[testConfig](t.TempDir(), "example", "config.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -279,7 +290,7 @@ func TestConfigFlagDefersFilesystemValidation(t *testing.T) {
 }
 
 func TestConfigFlagAcceptsFileThatDoesNotExistYet(t *testing.T) {
-	file, err := config.NewYAMLConfigFile[testConfig](t.TempDir(), "example", "config.yml")
+	file, err := newYAMLConfigFileAt[testConfig](t.TempDir(), "example", "config.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -298,11 +309,11 @@ func TestConfigFlagAcceptsFileThatDoesNotExistYet(t *testing.T) {
 }
 
 func TestConfigFlagOverridesPathBeforeBeforeHook(t *testing.T) {
-	file, err := config.NewYAMLConfigFile[testConfig](t.TempDir(), "example", "config.yml")
+	file, err := newYAMLConfigFileAt[testConfig](t.TempDir(), "example", "config.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
-	alternative, err := config.NewYAMLConfigFile[testConfig](t.TempDir(), "other", "config.yml")
+	alternative, err := newYAMLConfigFileAt[testConfig](t.TempDir(), "other", "config.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -337,7 +348,7 @@ func TestConfigFlagOverridesPathBeforeBeforeHook(t *testing.T) {
 func TestConfigFlagUsesEnvironmentSource(t *testing.T) {
 	want := filepath.Join(t.TempDir(), "environment.yml")
 	t.Setenv("MY_APP_CONFIG_FILE", want)
-	file, err := config.NewYAMLConfigFile[testConfig](t.TempDir(), "my-app", "config.yml")
+	file, err := newYAMLConfigFileAt[testConfig](t.TempDir(), "my-app", "config.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -359,7 +370,7 @@ func TestConfigFlagTakesPrecedenceOverEnvironment(t *testing.T) {
 	environmentPath := filepath.Join(t.TempDir(), "environment.yml")
 	flagPath := filepath.Join(t.TempDir(), "flag.yml")
 	t.Setenv("MY_APP_CONFIG_FILE", environmentPath)
-	file, err := config.NewYAMLConfigFile[testConfig](t.TempDir(), "my.app", "config.yml")
+	file, err := newYAMLConfigFileAt[testConfig](t.TempDir(), "my.app", "config.yml")
 	if err != nil {
 		t.Fatal(err)
 	}

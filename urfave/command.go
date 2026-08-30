@@ -31,13 +31,15 @@ func configPathEnvName(appName string) string {
 	return strings.ToUpper(appName) + "_CONFIG_FILE"
 }
 
-// configFlag applies values while flags are parsed, before command Before
-// hooks run. Embedding preserves urfave's help and flag metadata interfaces.
+// configFlag synchronizes parsed values before command Before hooks run.
+// Embedding preserves urfave's help and flag metadata interfaces.
 type configFlag[T config.Validatable] struct {
 	*urfavecli.StringFlag
 	file *config.ConfigFile[T]
 }
 
+// Set synchronizes command-line values, including global flags placed after a
+// subcommand, as soon as urfave parses them.
 func (f *configFlag[T]) Set(name, value string) error {
 	if err := f.StringFlag.Set(name, value); err != nil {
 		return err
@@ -45,8 +47,8 @@ func (f *configFlag[T]) Set(name, value string) error {
 	return f.file.SetPath(value)
 }
 
-// PostParse synchronizes values obtained from urfave sources, which are
-// applied by StringFlag.PostParse without going through configFlag.Set.
+// PostParse synchronizes values obtained from urfave sources, which the
+// embedded StringFlag applies without dispatching through configFlag.Set.
 func (f *configFlag[T]) PostParse() error {
 	if err := f.StringFlag.PostParse(); err != nil {
 		return err

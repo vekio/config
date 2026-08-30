@@ -25,10 +25,32 @@ func (c testConfig) Validate() error {
 	return nil
 }
 
+func newYAMLConfigFileAt[T config.Validatable](baseDir, appName, fileName string) (*config.ConfigFile[T], error) {
+	file, err := config.NewYAMLConfigFile[T](appName, fileName)
+	if err != nil {
+		return nil, err
+	}
+	if err := file.SetPath(filepath.Join(baseDir, appName, fileName)); err != nil {
+		return nil, err
+	}
+	return file, nil
+}
+
+func newJSONConfigFileAt[T config.Validatable](baseDir, appName, fileName string) (*config.ConfigFile[T], error) {
+	file, err := config.NewJSONConfigFile[T](appName, fileName)
+	if err != nil {
+		return nil, err
+	}
+	if err := file.SetPath(filepath.Join(baseDir, appName, fileName)); err != nil {
+		return nil, err
+	}
+	return file, nil
+}
+
 func TestYAMLLoadOrCreateAndLoad(t *testing.T) {
 	base := t.TempDir()
 	want := testConfig{Name: "api", Port: 8080}
-	file, err := config.NewYAMLConfigFile[testConfig](base, "example", "config.yml")
+	file, err := newYAMLConfigFileAt[testConfig](base, "example", "config.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +87,7 @@ func TestYAMLLoadOrCreateAndLoad(t *testing.T) {
 }
 
 func TestSaveUsesPrivatePermissions(t *testing.T) {
-	file, err := config.NewYAMLConfigFile[testConfig](t.TempDir(), "example", "config.yml")
+	file, err := newYAMLConfigFileAt[testConfig](t.TempDir(), "example", "config.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +112,7 @@ func TestSaveUsesPrivatePermissions(t *testing.T) {
 }
 
 func TestCreateDoesNotReplaceExistingFile(t *testing.T) {
-	file, err := config.NewYAMLConfigFile[testConfig](t.TempDir(), "example", "config.yml")
+	file, err := newYAMLConfigFileAt[testConfig](t.TempDir(), "example", "config.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +134,7 @@ func TestCreateDoesNotReplaceExistingFile(t *testing.T) {
 
 func TestJSONRoundTripAndExactFilename(t *testing.T) {
 	base := t.TempDir()
-	file, err := config.NewJSONConfigFile[testConfig](base, "example", "settings.conf")
+	file, err := newJSONConfigFileAt[testConfig](base, "example", "settings.conf")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,7 +147,7 @@ func TestJSONRoundTripAndExactFilename(t *testing.T) {
 		t.Fatalf("filename = %q", filepath.Base(file.Path()))
 	}
 
-	second, err := config.NewJSONConfigFile[testConfig](base, "example", "settings.conf")
+	second, err := newJSONConfigFileAt[testConfig](base, "example", "settings.conf")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,7 +161,7 @@ func TestJSONRoundTripAndExactFilename(t *testing.T) {
 }
 
 func TestYAMLAcceptsYMLFilename(t *testing.T) {
-	file, err := config.NewYAMLConfigFile[testConfig](t.TempDir(), "example", "settings.yml")
+	file, err := newYAMLConfigFileAt[testConfig](t.TempDir(), "example", "settings.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -149,7 +171,7 @@ func TestYAMLAcceptsYMLFilename(t *testing.T) {
 }
 
 func TestLoadRejectsInvalidData(t *testing.T) {
-	file, err := config.NewYAMLConfigFile[testConfig](
+	file, err := newYAMLConfigFileAt[testConfig](
 		t.TempDir(),
 		"example",
 		"config.yml",
@@ -180,14 +202,14 @@ func TestStrictDecoding(t *testing.T) {
 		{
 			name: "yaml unknown field",
 			newFile: func(path string) (*config.ConfigFile[testConfig], error) {
-				return config.NewYAMLConfigFile[testConfig](path, "app", "config.yml")
+				return newYAMLConfigFileAt[testConfig](path, "app", "config.yml")
 			},
 			content: "name: api\nport: 80\nunknown: true\n",
 		},
 		{
 			name: "json unknown field",
 			newFile: func(path string) (*config.ConfigFile[testConfig], error) {
-				return config.NewJSONConfigFile[testConfig](path, "app", "config.json")
+				return newJSONConfigFileAt[testConfig](path, "app", "config.json")
 			},
 			content: `{"name":"api","port":80,"unknown":true}`,
 		},
@@ -213,21 +235,14 @@ func TestStrictDecoding(t *testing.T) {
 }
 
 func TestConstructorRejectsUnsafeNames(t *testing.T) {
-	_, err := config.NewYAMLConfigFile[testConfig](t.TempDir(), "../escape", "config.yml")
+	_, err := newYAMLConfigFileAt[testConfig](t.TempDir(), "../escape", "config.yml")
 	if err == nil {
 		t.Fatal("constructor accepted an unsafe application name")
 	}
 }
 
-func TestConstructorRejectsEmptyBaseDirectory(t *testing.T) {
-	_, err := config.NewYAMLConfigFile[testConfig]("", "example", "config.yml")
-	if err == nil {
-		t.Fatal("constructor accepted an empty base directory")
-	}
-}
-
 func TestSetPathOverridesConventionalPath(t *testing.T) {
-	file, err := config.NewYAMLConfigFile[testConfig](t.TempDir(), "my-app", "config.yml")
+	file, err := newYAMLConfigFileAt[testConfig](t.TempDir(), "my-app", "config.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -244,7 +259,7 @@ func TestSetPathOverridesConventionalPath(t *testing.T) {
 }
 
 func TestSetPathRejectsEmptyPath(t *testing.T) {
-	file, err := config.NewYAMLConfigFile[testConfig](t.TempDir(), "example", "config.yml")
+	file, err := newYAMLConfigFileAt[testConfig](t.TempDir(), "example", "config.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -253,12 +268,12 @@ func TestSetPathRejectsEmptyPath(t *testing.T) {
 	}
 }
 
-func TestSaveRejectsFileAsBaseDirectory(t *testing.T) {
+func TestSaveRejectsFileAsParentDirectory(t *testing.T) {
 	baseFile := filepath.Join(t.TempDir(), "not-a-directory")
 	if err := os.WriteFile(baseFile, []byte("content"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	file, err := config.NewYAMLConfigFile[testConfig](baseFile, "example", "config.yml")
+	file, err := newYAMLConfigFileAt[testConfig](baseFile, "example", "config.yml")
 	if err != nil {
 		t.Fatalf("constructor performed filesystem validation: %v", err)
 	}
@@ -267,15 +282,15 @@ func TestSaveRejectsFileAsBaseDirectory(t *testing.T) {
 	}
 }
 
-func TestDefaultConfigFilePath(t *testing.T) {
+func TestConfigFileUsesDefaultDirectory(t *testing.T) {
 	configHome := filepath.Join(t.TempDir(), "config-home")
 	t.Setenv("XDG_CONFIG_HOME", configHome)
-	file, err := config.NewDefaultConfigFile[testConfig]("example")
+	file, err := config.NewYAMLConfigFile[testConfig]("example", "settings.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	want := filepath.Join(configHome, "example", "config.yml")
+	want := filepath.Join(configHome, "example", "settings.yml")
 	if file.Path() != want {
 		t.Fatalf("Path() = %q, want %q", file.Path(), want)
 	}

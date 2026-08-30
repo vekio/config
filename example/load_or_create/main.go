@@ -32,7 +32,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	configFile, err := config.NewDefaultConfigFile[Config]("config-example")
+	configFile, err := config.NewYAMLConfigFile[Config]("config-example", "config.yml")
 	if err != nil {
 		log.Fatal(err)
 	}
