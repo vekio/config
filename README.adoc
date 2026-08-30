@@ -1,7 +1,7 @@
 = config
 
 Typed YAML and JSON configuration files for Go, with reusable commands and
-flags for `urfave/cli/v3` applications.
+flags available separately for `urfave/cli/v3` applications.
 
 Configuration types implement `Validate() error`. Values are validated after
 loading and before writing. Writes are atomic and use private permissions. The
@@ -48,25 +48,36 @@ config.NewJSONConfigFile[Config]("/etc", "myapp", "config.json")
 
 `DefaultDataDir("myapp")` returns the conventional application data directory.
 
+Applications can select another path explicitly with
+`file.SetPath("./config.dev.yml")` before loading or writing the configuration.
+
 == CLI
 
 Reusable commands and a global configuration path flag are provided for
-`urfave/cli/v3`:
+`urfave/cli/v3` in a separate module:
+
+[source,shell]
+----
+go get github.com/vekio/config/urfave
+----
 
 [source,go]
 ----
+import "github.com/vekio/config/urfave"
+
 app := &cli.Command{
     Name:     "myapp",
-    Flags:    []cli.Flag{config.NewConfigFlag(file)},
-    Commands: []*cli.Command{config.NewConfigCommand(file, defaults)},
+    Flags:    []cli.Flag{urfave.NewConfigFlag(file)},
+    Commands: []*cli.Command{urfave.NewConfigCommand(file, defaults)},
 }
 ----
 
 The `config` command provides `show`, `path`, `validate`, and `init`.
 `config init --force` replaces an existing file.
 
-The global `--config` flag overrides the file path. It can also be set through
-`<APPNAME>_CONFIG_FILE`; for example, `MYAPP_CONFIG_FILE`.
+The global `--config` flag takes precedence over `<APPNAME>_CONFIG_FILE`.
+Hyphens and dots in the application name become underscores, so `my-app` uses
+`MY_APP_CONFIG_FILE`.
 
 See link:example/load_or_create/main.go[LoadOrCreate example] and
-link:example/cli/main.go[CLI example].
+link:urfave/example/main.go[CLI example].

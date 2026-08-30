@@ -1,4 +1,4 @@
-package config_test
+package urfave_test
 
 import (
 	"bytes"
@@ -11,7 +11,23 @@ import (
 
 	urfavecli "github.com/urfave/cli/v3"
 	config "github.com/vekio/config"
+	"github.com/vekio/config/urfave"
 )
+
+type testConfig struct {
+	Name string `json:"name" yaml:"name"`
+	Port int    `json:"port" yaml:"port"`
+}
+
+func (c testConfig) Validate() error {
+	if c.Name == "" {
+		return errors.New("name is required")
+	}
+	if c.Port < 1 || c.Port > 65535 {
+		return errors.New("invalid port")
+	}
+	return nil
+}
 
 func commandDefault() testConfig {
 	return testConfig{Name: "default", Port: 8080}
@@ -30,7 +46,7 @@ func TestConfigShow(t *testing.T) {
 	app := &urfavecli.Command{
 		Name:     "app",
 		Writer:   &output,
-		Commands: []*urfavecli.Command{config.NewConfigCommand(file, commandDefault())},
+		Commands: []*urfavecli.Command{urfave.NewConfigCommand(file, commandDefault())},
 	}
 	if err := app.Run(context.Background(), []string{"app", "config", "show"}); err != nil {
 		t.Fatal(err)
@@ -50,7 +66,7 @@ func TestConfigDefaultsToHelp(t *testing.T) {
 	app := &urfavecli.Command{
 		Name:     "app",
 		Writer:   &output,
-		Commands: []*urfavecli.Command{config.NewConfigCommand(file, commandDefault())},
+		Commands: []*urfavecli.Command{urfave.NewConfigCommand(file, commandDefault())},
 	}
 	if err := app.Run(context.Background(), []string{"app", "config"}); err != nil {
 		t.Fatal(err)
@@ -73,7 +89,7 @@ func TestConfigShowMissingFile(t *testing.T) {
 	app := &urfavecli.Command{
 		Name:     "app",
 		Writer:   &bytes.Buffer{},
-		Commands: []*urfavecli.Command{config.NewConfigCommand(file, commandDefault())},
+		Commands: []*urfavecli.Command{urfave.NewConfigCommand(file, commandDefault())},
 	}
 	err = app.Run(context.Background(), []string{"app", "config", "show"})
 	if err == nil || !strings.Contains(err.Error(), filepath.Join(baseDir, "example", "config.yml")) {
@@ -98,8 +114,8 @@ func TestConfigFlagOverridesPathForSubcommands(t *testing.T) {
 	app := &urfavecli.Command{
 		Name:     "app",
 		Writer:   &output,
-		Flags:    []urfavecli.Flag{config.NewConfigFlag(file)},
-		Commands: []*urfavecli.Command{config.NewConfigCommand(file, commandDefault())},
+		Flags:    []urfavecli.Flag{urfave.NewConfigFlag(file)},
+		Commands: []*urfavecli.Command{urfave.NewConfigCommand(file, commandDefault())},
 	}
 	args := []string{"app", "config", "show", "--config", alternative.Path()}
 	if err := app.Run(context.Background(), args); err != nil {
@@ -122,8 +138,8 @@ func TestConfigPath(t *testing.T) {
 	app := &urfavecli.Command{
 		Name:     "app",
 		Writer:   &output,
-		Flags:    []urfavecli.Flag{config.NewConfigFlag(file)},
-		Commands: []*urfavecli.Command{config.NewConfigCommand(file, commandDefault())},
+		Flags:    []urfavecli.Flag{urfave.NewConfigFlag(file)},
+		Commands: []*urfavecli.Command{urfave.NewConfigCommand(file, commandDefault())},
 	}
 	want := filepath.Join(t.TempDir(), "custom.yml")
 	if err := app.Run(context.Background(), []string{"app", "config", "path", "--config", want}); err != nil {
@@ -146,7 +162,7 @@ func TestConfigValidate(t *testing.T) {
 	app := &urfavecli.Command{
 		Name:     "app",
 		Writer:   &output,
-		Commands: []*urfavecli.Command{config.NewConfigCommand(file, commandDefault())},
+		Commands: []*urfavecli.Command{urfave.NewConfigCommand(file, commandDefault())},
 	}
 	if err := app.Run(context.Background(), []string{"app", "config", "validate"}); err != nil {
 		t.Fatal(err)
@@ -166,7 +182,7 @@ func TestConfigInitCreatesExclusively(t *testing.T) {
 		return &urfavecli.Command{
 			Name:     "app",
 			Writer:   &output,
-			Commands: []*urfavecli.Command{config.NewConfigCommand(file, commandDefault())},
+			Commands: []*urfavecli.Command{urfave.NewConfigCommand(file, commandDefault())},
 		}
 	}
 	if err := newApp().Run(context.Background(), []string{"app", "config", "init"}); err != nil {
@@ -197,7 +213,7 @@ func TestConfigInitForceReplacesExistingFile(t *testing.T) {
 	app := &urfavecli.Command{
 		Name:     "app",
 		Writer:   &output,
-		Commands: []*urfavecli.Command{config.NewConfigCommand(file, commandDefault())},
+		Commands: []*urfavecli.Command{urfave.NewConfigCommand(file, commandDefault())},
 	}
 	if err := app.Run(context.Background(), []string{"app", "config", "init", "--force"}); err != nil {
 		t.Fatal(err)
@@ -218,10 +234,29 @@ func TestConfigFlagRejectsEmptyPath(t *testing.T) {
 	}
 	app := &urfavecli.Command{
 		Name:  "app",
-		Flags: []urfavecli.Flag{config.NewConfigFlag(file)},
+		Flags: []urfavecli.Flag{urfave.NewConfigFlag(file)},
 	}
 	if err := app.Run(context.Background(), []string{"app", "--config", " "}); err == nil {
 		t.Fatal("--config accepted an empty path")
+	}
+}
+
+func TestConfigFlagDocumentsEnvironmentVariable(t *testing.T) {
+	file, err := config.NewYAMLConfigFile[testConfig](t.TempDir(), "my-app", "config.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var output bytes.Buffer
+	app := &urfavecli.Command{
+		Name:   "app",
+		Writer: &output,
+		Flags:  []urfavecli.Flag{urfave.NewConfigFlag(file)},
+	}
+	if err := app.Run(context.Background(), []string{"app", "--help"}); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output.String(), "MY_APP_CONFIG_FILE") {
+		t.Fatalf("help output does not document MY_APP_CONFIG_FILE:\n%s", output.String())
 	}
 }
 
@@ -233,7 +268,7 @@ func TestConfigFlagDefersFilesystemValidation(t *testing.T) {
 	directory := t.TempDir()
 	app := &urfavecli.Command{
 		Name:  "app",
-		Flags: []urfavecli.Flag{config.NewConfigFlag(file)},
+		Flags: []urfavecli.Flag{urfave.NewConfigFlag(file)},
 	}
 	if err := app.Run(context.Background(), []string{"app", "--config", directory}); err != nil {
 		t.Fatalf("--config performed filesystem validation: %v", err)
@@ -251,7 +286,7 @@ func TestConfigFlagAcceptsFileThatDoesNotExistYet(t *testing.T) {
 	want := filepath.Join(t.TempDir(), "new", "config.yml")
 	app := &urfavecli.Command{
 		Name:   "app",
-		Flags:  []urfavecli.Flag{config.NewConfigFlag(file)},
+		Flags:  []urfavecli.Flag{urfave.NewConfigFlag(file)},
 		Action: func(context.Context, *urfavecli.Command) error { return nil },
 	}
 	if err := app.Run(context.Background(), []string{"app", "--config", want}); err != nil {
@@ -279,7 +314,7 @@ func TestConfigFlagOverridesPathBeforeBeforeHook(t *testing.T) {
 	var loaded testConfig
 	app := &urfavecli.Command{
 		Name:  "app",
-		Flags: []urfavecli.Flag{config.NewConfigFlag(file)},
+		Flags: []urfavecli.Flag{urfave.NewConfigFlag(file)},
 		Before: func(ctx context.Context, _ *urfavecli.Command) (context.Context, error) {
 			loaded, err = file.Load()
 			return ctx, err
@@ -300,16 +335,16 @@ func TestConfigFlagOverridesPathBeforeBeforeHook(t *testing.T) {
 }
 
 func TestConfigFlagUsesEnvironmentSource(t *testing.T) {
+	want := filepath.Join(t.TempDir(), "environment.yml")
+	t.Setenv("MY_APP_CONFIG_FILE", want)
 	file, err := config.NewYAMLConfigFile[testConfig](t.TempDir(), "my-app", "config.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := filepath.Join(t.TempDir(), "environment.yml")
-	t.Setenv("MY_APP_CONFIG_FILE", want)
 
 	app := &urfavecli.Command{
 		Name:   "app",
-		Flags:  []urfavecli.Flag{config.NewConfigFlag(file)},
+		Flags:  []urfavecli.Flag{urfave.NewConfigFlag(file)},
 		Action: func(context.Context, *urfavecli.Command) error { return nil },
 	}
 	if err := app.Run(context.Background(), []string{"app"}); err != nil {
@@ -321,17 +356,17 @@ func TestConfigFlagUsesEnvironmentSource(t *testing.T) {
 }
 
 func TestConfigFlagTakesPrecedenceOverEnvironment(t *testing.T) {
+	environmentPath := filepath.Join(t.TempDir(), "environment.yml")
+	flagPath := filepath.Join(t.TempDir(), "flag.yml")
+	t.Setenv("MY_APP_CONFIG_FILE", environmentPath)
 	file, err := config.NewYAMLConfigFile[testConfig](t.TempDir(), "my.app", "config.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
-	environmentPath := filepath.Join(t.TempDir(), "environment.yml")
-	flagPath := filepath.Join(t.TempDir(), "flag.yml")
-	t.Setenv("MY_APP_CONFIG_FILE", environmentPath)
 
 	app := &urfavecli.Command{
 		Name:   "app",
-		Flags:  []urfavecli.Flag{config.NewConfigFlag(file)},
+		Flags:  []urfavecli.Flag{urfave.NewConfigFlag(file)},
 		Action: func(context.Context, *urfavecli.Command) error { return nil },
 	}
 	if err := app.Run(context.Background(), []string{"app", "--config", flagPath}); err != nil {

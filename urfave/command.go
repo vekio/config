@@ -1,4 +1,4 @@
-package config
+package urfave
 
 import (
 	"context"
@@ -7,39 +7,70 @@ import (
 	"strings"
 
 	urfavecli "github.com/urfave/cli/v3"
+	"github.com/vekio/config"
 )
 
 // NewConfigFlag creates a global --config flag that overrides file's path
 // when explicitly set by the client application.
-func NewConfigFlag[T Validatable](file *ConfigFile[T]) *urfavecli.StringFlag {
-	return &urfavecli.StringFlag{
-		Name:        "config",
-		Usage:       "Path to the configuration file",
-		Value:       file.Path(),
-		Sources:     urfavecli.EnvVars(configEnvName(file.appName)),
-		TakesFile:   true,
-		OnlyOnce:    true,
-		Config:      urfavecli.StringConfig{TrimSpace: true},
-		Validator:   validateConfigFlag,
-		Destination: &file.pathOverride,
+func NewConfigFlag[T config.Validatable](file *config.ConfigFile[T]) urfavecli.Flag {
+	flag := &urfavecli.StringFlag{
+		Name:      "config",
+		Usage:     "Path to the configuration file",
+		Value:     file.Path(),
+		Sources:   urfavecli.EnvVars(configPathEnvName(file.AppName())),
+		TakesFile: true,
+		OnlyOnce:  true,
+		Config:    urfavecli.StringConfig{TrimSpace: true},
+		Validator: validateConfigFlag,
 	}
+	return &configFlag[T]{StringFlag: flag, file: file}
 }
 
-func configEnvName(appName string) string {
+func configPathEnvName(appName string) string {
 	appName = strings.NewReplacer("-", "_", ".", "_").Replace(appName)
 	return strings.ToUpper(appName) + "_CONFIG_FILE"
 }
 
+// configFlag applies values while flags are parsed, before command Before
+// hooks run. Embedding preserves urfave's help and flag metadata interfaces.
+type configFlag[T config.Validatable] struct {
+	*urfavecli.StringFlag
+	file *config.ConfigFile[T]
+}
+
+func (f *configFlag[T]) Set(name, value string) error {
+	if err := f.StringFlag.Set(name, value); err != nil {
+		return err
+	}
+	return f.file.SetPath(value)
+}
+
+// PostParse synchronizes values obtained from urfave sources, which are
+// applied by StringFlag.PostParse without going through configFlag.Set.
+func (f *configFlag[T]) PostParse() error {
+	if err := f.StringFlag.PostParse(); err != nil {
+		return err
+	}
+	if !f.StringFlag.IsSet() {
+		return nil
+	}
+	value, ok := f.StringFlag.Get().(string)
+	if !ok {
+		return fmt.Errorf("configuration flag value is not a string")
+	}
+	return f.file.SetPath(value)
+}
+
 func validateConfigFlag(path string) error {
-	if _, err := cleanPath(path); err != nil {
-		return fmt.Errorf("invalid configuration file path: %w", err)
+	if strings.TrimSpace(path) == "" {
+		return fmt.Errorf("configuration file path cannot be empty")
 	}
 	return nil
 }
 
 // NewConfigCommand creates a reusable config command with show, path, validate,
 // and init subcommands. Invoking config without a subcommand displays help.
-func NewConfigCommand[T Validatable](file *ConfigFile[T], defaultData T) *urfavecli.Command {
+func NewConfigCommand[T config.Validatable](file *config.ConfigFile[T], defaultData T) *urfavecli.Command {
 	return &urfavecli.Command{
 		Name:  "config",
 		Usage: "Manage the application configuration",
@@ -52,7 +83,7 @@ func NewConfigCommand[T Validatable](file *ConfigFile[T], defaultData T) *urfave
 	}
 }
 
-func newPathCommand[T Validatable](file *ConfigFile[T]) *urfavecli.Command {
+func newPathCommand[T config.Validatable](file *config.ConfigFile[T]) *urfavecli.Command {
 	return &urfavecli.Command{
 		Name:  "path",
 		Usage: "Show the configuration file path",
@@ -63,7 +94,7 @@ func newPathCommand[T Validatable](file *ConfigFile[T]) *urfavecli.Command {
 	}
 }
 
-func newValidateCommand[T Validatable](file *ConfigFile[T]) *urfavecli.Command {
+func newValidateCommand[T config.Validatable](file *config.ConfigFile[T]) *urfavecli.Command {
 	return &urfavecli.Command{
 		Name:  "validate",
 		Usage: "Validate the configuration file",
@@ -77,7 +108,7 @@ func newValidateCommand[T Validatable](file *ConfigFile[T]) *urfavecli.Command {
 	}
 }
 
-func newInitCommand[T Validatable](file *ConfigFile[T], defaultData T) *urfavecli.Command {
+func newInitCommand[T config.Validatable](file *config.ConfigFile[T], defaultData T) *urfavecli.Command {
 	return &urfavecli.Command{
 		Name:  "init",
 		Usage: "Create the default configuration file",
@@ -102,7 +133,7 @@ func newInitCommand[T Validatable](file *ConfigFile[T], defaultData T) *urfavecl
 	}
 }
 
-func newShowCommand[T Validatable](file *ConfigFile[T]) *urfavecli.Command {
+func newShowCommand[T config.Validatable](file *config.ConfigFile[T]) *urfavecli.Command {
 	return &urfavecli.Command{
 		Name:  "show",
 		Usage: "Show the configuration file contents",

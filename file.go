@@ -34,9 +34,24 @@ type Validatable interface {
 // It combines the base directory, application name, and file name.
 func (c *ConfigFile[T]) Path() string {
 	if c.pathOverride != "" {
-		return filepath.Clean(c.pathOverride)
+		return c.pathOverride
 	}
 	return filepath.Join(c.baseDir, c.appName, c.fileName)
+}
+
+// SetPath overrides the conventional configuration file path.
+func (c *ConfigFile[T]) SetPath(path string) error {
+	path, err := cleanPath(path)
+	if err != nil {
+		return fmt.Errorf("invalid configuration file path: %w", err)
+	}
+	c.pathOverride = path
+	return nil
+}
+
+// AppName returns the application name associated with the configuration.
+func (c *ConfigFile[T]) AppName() string {
+	return c.appName
 }
 
 // Content reads and returns the content of the configuration file.

@@ -226,6 +226,33 @@ func TestConstructorRejectsEmptyBaseDirectory(t *testing.T) {
 	}
 }
 
+func TestSetPathOverridesConventionalPath(t *testing.T) {
+	file, err := config.NewYAMLConfigFile[testConfig](t.TempDir(), "my-app", "config.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := filepath.Join(t.TempDir(), "development.yml")
+	if err := file.SetPath(want); err != nil {
+		t.Fatal(err)
+	}
+	if file.AppName() != "my-app" {
+		t.Fatalf("AppName() = %q, want my-app", file.AppName())
+	}
+	if file.Path() != want {
+		t.Fatalf("Path() = %q, want %q", file.Path(), want)
+	}
+}
+
+func TestSetPathRejectsEmptyPath(t *testing.T) {
+	file, err := config.NewYAMLConfigFile[testConfig](t.TempDir(), "example", "config.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := file.SetPath(" "); err == nil {
+		t.Fatal("SetPath() accepted an empty path")
+	}
+}
+
 func TestSaveRejectsFileAsBaseDirectory(t *testing.T) {
 	baseFile := filepath.Join(t.TempDir(), "not-a-directory")
 	if err := os.WriteFile(baseFile, []byte("content"), 0o600); err != nil {

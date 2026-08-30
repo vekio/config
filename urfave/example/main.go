@@ -8,6 +8,7 @@ import (
 
 	urfavecli "github.com/urfave/cli/v3"
 	"github.com/vekio/config"
+	"github.com/vekio/config/urfave"
 )
 
 type Config struct {
@@ -36,16 +37,20 @@ func main() {
 		Address: "127.0.0.1",
 		Port:    8080,
 	}
+	configFlag := urfave.NewConfigFlag(configFile)
 	app := &urfavecli.Command{
 		Name:  "example",
 		Usage: "Example application with configurable file path",
-		Flags: []urfavecli.Flag{config.NewConfigFlag(configFile)},
+		// urfave calls configFlag.Set while parsing --config. This updates
+		// configFile before any command Before hook runs.
+		Flags: []urfavecli.Flag{configFlag},
 		Commands: []*urfavecli.Command{
-			config.NewConfigCommand(configFile, defaultConfig),
+			urfave.NewConfigCommand(configFile, defaultConfig),
 			{
 				Name:  "serve",
 				Usage: "Show the address that the application would use",
 				Before: func(ctx context.Context, _ *urfavecli.Command) (context.Context, error) {
+					// Path already contains the value supplied through --config.
 					loaded, err := configFile.LoadOrCreate(defaultConfig)
 					if err != nil {
 						return ctx, err

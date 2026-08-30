@@ -7,11 +7,13 @@ default:
 [group('quality')]
 test:
     go test ./...
+    go -C urfave test ./...
 
 # Run all tests with Go's race detector
 [group('quality')]
 test-race:
     go test -race ./...
+    go -C urfave test -race ./...
 
 # Generate and report statement coverage
 [group('quality')]
@@ -27,6 +29,7 @@ check: fmt-check vet test
 [group('quality')]
 fmt:
     go fmt ./...
+    go -C urfave fmt ./...
 
 # Check that Go code is formatted
 [group('quality')]
@@ -37,3 +40,4 @@ fmt-check:
 [group('quality')]
 vet:
     go vet ./...
+    go -C urfave vet ./...
