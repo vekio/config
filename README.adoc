@@ -50,6 +50,9 @@ config.NewJSONConfigFile[Config]("myapp", "config.json")
 
 Applications can select another path explicitly with
 `file.SetPath("./config.dev.yml")` before loading or writing the configuration.
+They can also set `<APPNAME>_CONFIG_FILE`, which is read when the `ConfigFile`
+is created. Non-alphanumeric characters in the application name become
+underscores, and empty values are ignored.
 
 == CLI
 
@@ -76,8 +79,6 @@ The `config` command provides `show`, `path`, `validate`, and `init`.
 `config init --force` replaces an existing file.
 
 The global `--config` flag takes precedence over `<APPNAME>_CONFIG_FILE`.
-Hyphens and dots in the application name become underscores, so `my-app` uses
-`MY_APP_CONFIG_FILE`.
 
 See link:example/load_or_create/main.go[LoadOrCreate example] and
 link:urfave/example/main.go[CLI example].

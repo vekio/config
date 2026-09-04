@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"strings"
 
 	urfavecli "github.com/urfave/cli/v3"
 	"github.com/vekio/config"
@@ -14,21 +13,15 @@ import (
 // when explicitly set by the client application.
 func NewConfigFlag[T config.Validatable](file *config.ConfigFile[T]) urfavecli.Flag {
 	flag := &urfavecli.StringFlag{
-		Name:      "config",
-		Usage:     "Path to the configuration file",
-		Value:     file.Path(),
-		Sources:   urfavecli.EnvVars(configPathEnvName(file.AppName())),
-		TakesFile: true,
-		OnlyOnce:  true,
-		Config:    urfavecli.StringConfig{TrimSpace: true},
-		Validator: validateConfigFlag,
+		Name:        "config",
+		Usage:       "Path to the configuration file",
+		Value:       file.Path(),
+		TakesFile:   true,
+		OnlyOnce:    true,
+		HideDefault: true,
+		Config:      urfavecli.StringConfig{TrimSpace: true},
 	}
 	return &configFlag[T]{StringFlag: flag, file: file}
-}
-
-func configPathEnvName(appName string) string {
-	appName = strings.NewReplacer("-", "_", ".", "_").Replace(appName)
-	return strings.ToUpper(appName) + "_CONFIG_FILE"
 }
 
 // configFlag synchronizes parsed values before command Before hooks run.
@@ -39,35 +32,14 @@ type configFlag[T config.Validatable] struct {
 }
 
 // Set synchronizes command-line values, including global flags placed after a
-// subcommand, as soon as urfave parses them.
+// subcommand, as soon as urfave parses them. Environment sources are applied
+// internally by StringFlag and have already been resolved by ConfigFile, so
+// they do not dispatch through this method or update the path twice.
 func (f *configFlag[T]) Set(name, value string) error {
 	if err := f.StringFlag.Set(name, value); err != nil {
 		return err
 	}
 	return f.file.SetPath(value)
-}
-
-// PostParse synchronizes values obtained from urfave sources, which the
-// embedded StringFlag applies without dispatching through configFlag.Set.
-func (f *configFlag[T]) PostParse() error {
-	if err := f.StringFlag.PostParse(); err != nil {
-		return err
-	}
-	if !f.StringFlag.IsSet() {
-		return nil
-	}
-	value, ok := f.StringFlag.Get().(string)
-	if !ok {
-		return fmt.Errorf("configuration flag value is not a string")
-	}
-	return f.file.SetPath(value)
-}
-
-func validateConfigFlag(path string) error {
-	if strings.TrimSpace(path) == "" {
-		return fmt.Errorf("configuration file path cannot be empty")
-	}
-	return nil
 }
 
 // NewConfigCommand creates a reusable config command with show, path, validate,

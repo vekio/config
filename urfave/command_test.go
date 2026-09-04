@@ -252,8 +252,8 @@ func TestConfigFlagRejectsEmptyPath(t *testing.T) {
 	}
 }
 
-func TestConfigFlagDocumentsEnvironmentVariable(t *testing.T) {
-	file, err := newYAMLConfigFileAt[testConfig](t.TempDir(), "my-app", "config.yml")
+func TestConfigFlagHidesDefaultPath(t *testing.T) {
+	file, err := newYAMLConfigFileAt[testConfig](t.TempDir(), "shorty awd", "config.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -266,8 +266,8 @@ func TestConfigFlagDocumentsEnvironmentVariable(t *testing.T) {
 	if err := app.Run(context.Background(), []string{"app", "--help"}); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(output.String(), "MY_APP_CONFIG_FILE") {
-		t.Fatalf("help output does not document MY_APP_CONFIG_FILE:\n%s", output.String())
+	if strings.Contains(output.String(), "(default:") {
+		t.Fatalf("help output exposes the default path:\n%s", output.String())
 	}
 }
 
@@ -345,18 +345,22 @@ func TestConfigFlagOverridesPathBeforeBeforeHook(t *testing.T) {
 	}
 }
 
-func TestConfigFlagUsesEnvironmentSource(t *testing.T) {
+func TestConfigFlagPreservesEnvironmentOverride(t *testing.T) {
 	want := filepath.Join(t.TempDir(), "environment.yml")
 	t.Setenv("MY_APP_CONFIG_FILE", want)
-	file, err := newYAMLConfigFileAt[testConfig](t.TempDir(), "my-app", "config.yml")
+	file, err := config.NewYAMLConfigFile[testConfig]("my-app", "config.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	var flagSet bool
 	app := &urfavecli.Command{
-		Name:   "app",
-		Flags:  []urfavecli.Flag{urfave.NewConfigFlag(file)},
-		Action: func(context.Context, *urfavecli.Command) error { return nil },
+		Name:  "app",
+		Flags: []urfavecli.Flag{urfave.NewConfigFlag(file)},
+		Action: func(_ context.Context, cmd *urfavecli.Command) error {
+			flagSet = cmd.IsSet("config")
+			return nil
+		},
 	}
 	if err := app.Run(context.Background(), []string{"app"}); err != nil {
 		t.Fatal(err)
@@ -364,13 +368,16 @@ func TestConfigFlagUsesEnvironmentSource(t *testing.T) {
 	if file.Path() != want {
 		t.Fatalf("Path() = %q, want %q", file.Path(), want)
 	}
+	if flagSet {
+		t.Fatal("environment override marked --config as explicitly set")
+	}
 }
 
 func TestConfigFlagTakesPrecedenceOverEnvironment(t *testing.T) {
 	environmentPath := filepath.Join(t.TempDir(), "environment.yml")
 	flagPath := filepath.Join(t.TempDir(), "flag.yml")
 	t.Setenv("MY_APP_CONFIG_FILE", environmentPath)
-	file, err := newYAMLConfigFileAt[testConfig](t.TempDir(), "my.app", "config.yml")
+	file, err := config.NewYAMLConfigFile[testConfig]("my.app", "config.yml")
 	if err != nil {
 		t.Fatal(err)
 	}

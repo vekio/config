@@ -258,6 +258,39 @@ func TestSetPathOverridesConventionalPath(t *testing.T) {
 	}
 }
 
+func TestEnvironmentOverridesPathWithoutUserConfigDirectory(t *testing.T) {
+	want := filepath.Join(t.TempDir(), "development.yml")
+	t.Setenv("SHORTY_AWD_CONFIG_FILE", want)
+	t.Setenv("XDG_CONFIG_HOME", "")
+	t.Setenv("HOME", "")
+
+	file, err := config.NewYAMLConfigFile[testConfig]("shorty awd", "config.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if file.PathEnvVar() != "SHORTY_AWD_CONFIG_FILE" {
+		t.Fatalf("PathEnvVar() = %q, want SHORTY_AWD_CONFIG_FILE", file.PathEnvVar())
+	}
+	if file.Path() != want {
+		t.Fatalf("Path() = %q, want %q", file.Path(), want)
+	}
+}
+
+func TestEmptyEnvironmentOverrideUsesDefaultPath(t *testing.T) {
+	configHome := filepath.Join(t.TempDir(), "config-home")
+	t.Setenv("XDG_CONFIG_HOME", configHome)
+	t.Setenv("EMPTY_APP_CONFIG_FILE", " ")
+
+	file, err := config.NewYAMLConfigFile[testConfig]("empty-app", "config.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := filepath.Join(configHome, "empty-app", "config.yml")
+	if file.Path() != want {
+		t.Fatalf("Path() = %q, want %q", file.Path(), want)
+	}
+}
+
 func TestSetPathRejectsEmptyPath(t *testing.T) {
 	file, err := newYAMLConfigFileAt[testConfig](t.TempDir(), "example", "config.yml")
 	if err != nil {

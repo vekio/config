@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -9,37 +10,36 @@ import (
 // NewYAMLConfigFile creates a typed YAML configuration file inside the user's
 // configuration directory.
 func NewYAMLConfigFile[T Validatable](appName, fileName string) (*ConfigFile[T], error) {
-	baseDir, err := defaultConfigDir()
-	if err != nil {
-		return nil, err
-	}
-	return newConfigFile(baseDir, appName, fileName, yamlCodec[T]{})
+	return newConfigFile(appName, fileName, yamlCodec[T]{})
 }
 
 // NewJSONConfigFile creates a typed JSON configuration file inside the user's
 // configuration directory.
 func NewJSONConfigFile[T Validatable](appName, fileName string) (*ConfigFile[T], error) {
-	baseDir, err := defaultConfigDir()
-	if err != nil {
-		return nil, err
-	}
-	return newConfigFile(baseDir, appName, fileName, jsonCodec[T]{})
+	return newConfigFile(appName, fileName, jsonCodec[T]{})
 }
 
-func newConfigFile[T Validatable](baseDir, appName, fileName string, valueCodec codec[T]) (*ConfigFile[T], error) {
-	baseDir, err := cleanPath(baseDir)
-	if err != nil {
-		return nil, fmt.Errorf("invalid configuration directory: %w", err)
-	}
+func newConfigFile[T Validatable](appName, fileName string, valueCodec codec[T]) (*ConfigFile[T], error) {
 	cfg := &ConfigFile[T]{
 		codec:    valueCodec,
 		fileName: fileName,
-		baseDir:  baseDir,
 		appName:  appName,
 	}
 	if err := validateConfigFile(cfg); err != nil {
 		return nil, err
 	}
+	if path := os.Getenv(cfg.PathEnvVar()); strings.TrimSpace(path) != "" {
+		if err := cfg.SetPath(path); err != nil {
+			return nil, fmt.Errorf("invalid %s: %w", cfg.PathEnvVar(), err)
+		}
+		return cfg, nil
+	}
+
+	baseDir, err := defaultConfigDir()
+	if err != nil {
+		return nil, err
+	}
+	cfg.baseDir = baseDir
 	return cfg, nil
 }
 

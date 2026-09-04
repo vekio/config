@@ -15,3 +15,21 @@ func cleanPath(path string) (string, error) {
 	}
 	return filepath.Clean(path), nil
 }
+
+func configPathEnvName(appName string) string {
+	var name strings.Builder
+	for _, char := range appName {
+		switch {
+		case char >= 'a' && char <= 'z':
+			name.WriteRune(char - ('a' - 'A'))
+		case char >= 'A' && char <= 'Z', char >= '0' && char <= '9', char == '_':
+			name.WriteRune(char)
+		default:
+			name.WriteByte('_')
+		}
+	}
+	if value := name.String(); value[0] >= '0' && value[0] <= '9' {
+		return "_" + value + "_CONFIG_FILE"
+	}
+	return name.String() + "_CONFIG_FILE"
+}

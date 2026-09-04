@@ -56,6 +56,11 @@ func (c *ConfigFile[T]) AppName() string {
 	return c.appName
 }
 
+// PathEnvVar returns the environment variable used to override Path.
+func (c *ConfigFile[T]) PathEnvVar() string {
+	return configPathEnvName(c.appName)
+}
+
 // Content reads and returns the content of the configuration file.
 // It returns an error if the file cannot be read.
 func (c *ConfigFile[T]) Content() ([]byte, error) {
