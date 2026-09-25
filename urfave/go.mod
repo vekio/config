@@ -4,7 +4,7 @@ go 1.27
 
 require (
 	github.com/urfave/cli/v3 v3.11.0
-	github.com/vekio/config v0.5.0
+	github.com/vekio/config v0.6.0
 )
 
 require (
