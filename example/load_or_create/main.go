@@ -32,16 +32,21 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	configFile, err := config.NewYAMLConfigFile[Config]("config-example", "config.yml")
+	defaults := Config{
+		Address:  "127.0.0.1",
+		Port:     8080,
+		DataPath: filepath.Join(dataDir, "data.db"),
+	}
+	configFile, err := config.NewYAMLConfigFile(
+		"config-example",
+		"config.yml",
+		config.Default(defaults),
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	cfg, err := configFile.LoadOrCreate(Config{
-		Address:  "127.0.0.1",
-		Port:     8080,
-		DataPath: filepath.Join(dataDir, "data.db"),
-	})
+	cfg, err := configFile.LoadOrCreate()
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -29,13 +29,22 @@ func (c Config) Validate() error {
     return nil
 }
 
-file, err := config.NewYAMLConfigFile[Config]("myapp", "config.yml")
+defaults := Config{Address: "127.0.0.1:8080"}
+file, err := config.NewYAMLConfigFile(
+    "myapp",
+    "config.yml",
+    config.Default(defaults),
+)
 if err != nil {
     return err
 }
 
-cfg, err := file.LoadOrCreate(Config{Address: "127.0.0.1:8080"})
+cfg, err := file.LoadOrCreate()
 ----
+
+Without `Default`, `LoadOrCreate` uses the zero value of the configuration
+type when it needs to create the file. As with every write, that value must pass
+`Validate`.
 
 Files use `<user-config-dir>/<app-name>/<file-name>`. YAML and JSON formats are
 available:
@@ -71,7 +80,7 @@ import "github.com/vekio/config/urfave"
 app := &cli.Command{
     Name:     "myapp",
     Flags:    []cli.Flag{urfave.NewConfigFlag(file)},
-    Commands: []*cli.Command{urfave.NewConfigCommand(file, defaults)},
+    Commands: []*cli.Command{urfave.NewConfigCommand(file)},
 }
 ----
 
@@ -82,3 +91,28 @@ The global `--config` flag takes precedence over `<APPNAME>_CONFIG_FILE`.
 
 See link:example/load_or_create/main.go[LoadOrCreate example] and
 link:urfave/example/main.go[CLI example].
+
+== Example application
+
+The link:urfave/example[items example] has an `App` with `AddItem` and
+`ListItems` use cases. Both use the same `ItemRepository` interface. At startup,
+the loaded configuration selects `memory` or `localfs`. The CLI uses the
+reusable `config` command and global `--config` flag; it loads the application
+configuration only for item commands, after CLI flags have been parsed.
+
+From the repository root, create a configuration file and run the example:
+
+[source,shell]
+----
+go -C urfave run ./example --config ./items.yml config init
+go -C urfave run ./example --config ./items.yml item add --name invoice
+go -C urfave run ./example --config ./items.yml item list
+----
+
+The generated file selects `localfs`, and `data_dir` is where item files are
+saved. To use an in-memory repository, edit `urfave/items.yml` and set
+`storage: memory`. In that mode, data lasts for one application run. The
+configuration path in these commands is relative to the `urfave` module.
+
+`ITEMS_EXAMPLE_CONFIG_FILE` can select the same file without passing the flag.
+When both are set, `--config` wins.

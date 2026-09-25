@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	xfile "github.com/vekio/x/file"
 )
@@ -18,11 +17,10 @@ const (
 // application-specific configuration file. It may be used concurrently after
 // its path has been configured.
 type ConfigFile[T Validatable] struct {
-	codec        codec[T]
-	fileName     string
-	baseDir      string
-	appName      string
-	pathOverride string
+	codec    codec[T]
+	appName  string
+	path     string
+	defaults T
 }
 
 // Validatable is implemented by configuration types that can perform their own
@@ -31,13 +29,9 @@ type Validatable interface {
 	Validate() error
 }
 
-// Path constructs and returns the full path to the configuration file.
-// It combines the base directory, application name, and file name.
+// Path returns the resolved path to the configuration file.
 func (c *ConfigFile[T]) Path() string {
-	if c.pathOverride != "" {
-		return c.pathOverride
-	}
-	return filepath.Join(c.baseDir, c.appName, c.fileName)
+	return c.path
 }
 
 // SetPath overrides the conventional configuration file path. It must not be
@@ -47,7 +41,7 @@ func (c *ConfigFile[T]) SetPath(path string) error {
 	if err != nil {
 		return fmt.Errorf("invalid configuration file path: %w", err)
 	}
-	c.pathOverride = path
+	c.path = path
 	return nil
 }
 
@@ -59,6 +53,12 @@ func (c *ConfigFile[T]) AppName() string {
 // PathEnvVar returns the environment variable used to override Path.
 func (c *ConfigFile[T]) PathEnvVar() string {
 	return configPathEnvName(c.appName)
+}
+
+// Defaults returns the value used to initialize a missing configuration file.
+// When no defaults were configured, it returns the zero value of T.
+func (c *ConfigFile[T]) Defaults() T {
+	return c.defaults
 }
 
 // Content reads and returns the content of the configuration file.
@@ -130,9 +130,9 @@ func (c *ConfigFile[T]) encode(data T) ([]byte, error) {
 	return content, nil
 }
 
-// LoadOrCreate loads an existing configuration or saves and returns defaultData
-// when the file does not exist.
-func (c *ConfigFile[T]) LoadOrCreate(defaultData T) (T, error) {
+// LoadOrCreate loads an existing configuration or saves and returns the
+// configured defaults when the file does not exist.
+func (c *ConfigFile[T]) LoadOrCreate() (T, error) {
 	data, err := c.Load()
 	if err == nil {
 		return data, nil
@@ -141,8 +141,8 @@ func (c *ConfigFile[T]) LoadOrCreate(defaultData T) (T, error) {
 		return data, err
 	}
 
-	if err := c.Create(defaultData); err == nil {
-		return defaultData, nil
+	if err := c.Create(c.defaults); err == nil {
+		return c.defaults, nil
 	} else if !errors.Is(err, os.ErrExist) {
 		var zero T
 		return zero, err

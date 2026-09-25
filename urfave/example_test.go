@@ -21,7 +21,7 @@ func Example() {
 	app := &urfavecli.Command{
 		Name:     "example",
 		Flags:    []urfavecli.Flag{urfave.NewConfigFlag(file)},
-		Commands: []*urfavecli.Command{urfave.NewConfigCommand(file, exampleConfig{})},
+		Commands: []*urfavecli.Command{urfave.NewConfigCommand(file)},
 	}
 
 	fmt.Println(app.Name, app.Flags[0].Names()[0], app.Commands[0].Name)

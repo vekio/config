@@ -1,4 +1,4 @@
-github.com/vekio/x v0.0.1 h1:lzFwlM0bbuhAgWMKdytFkX7S9JVEM2b94JZlmHI7UV0=
-github.com/vekio/x v0.0.1/go.mod h1:C1/qVGQF0d3ObOQIn7JVI8ECQP3okrfjNQLnjQ8ZHuo=
+github.com/vekio/x v0.1.1 h1:wwJUfykAhId0TKeD2E0hRmqoj68BFG1GeuVp4N4+uQI=
+github.com/vekio/x v0.1.1/go.mod h1:C1/qVGQF0d3ObOQIn7JVI8ECQP3okrfjNQLnjQ8ZHuo=
 go.yaml.in/yaml/v4 v4.0.0-rc.6 h1:1h7H1ohdUh93/FyE4YaDa1Zh64K6VVbjF4K6WUxMtH4=
 go.yaml.in/yaml/v4 v4.0.0-rc.6/go.mod h1:aZqd9kCMsGL7AuUv/m/PvWLdg5sjJsZ4oHDEnfPPfY0=

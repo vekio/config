@@ -19,6 +19,10 @@ type testConfig struct {
 	Port int    `json:"port" yaml:"port"`
 }
 
+type zeroConfig struct{}
+
+func (zeroConfig) Validate() error { return nil }
+
 func (c testConfig) Validate() error {
 	if c.Name == "" {
 		return errors.New("name is required")
@@ -29,8 +33,8 @@ func (c testConfig) Validate() error {
 	return nil
 }
 
-func newYAMLConfigFileAt[T config.Validatable](baseDir, appName, fileName string) (*config.ConfigFile[T], error) {
-	file, err := config.NewYAMLConfigFile[T](appName, fileName)
+func newYAMLConfigFileAt[T config.Validatable](baseDir, appName, fileName string, options ...config.Option[T]) (*config.ConfigFile[T], error) {
+	file, err := config.NewYAMLConfigFile[T](appName, fileName, options...)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +61,7 @@ func TestConfigShow(t *testing.T) {
 	app := &urfavecli.Command{
 		Name:     "app",
 		Writer:   &output,
-		Commands: []*urfavecli.Command{urfave.NewConfigCommand(file, commandDefault())},
+		Commands: []*urfavecli.Command{urfave.NewConfigCommand(file)},
 	}
 	if err := app.Run(context.Background(), []string{"app", "config", "show"}); err != nil {
 		t.Fatal(err)
@@ -77,7 +81,7 @@ func TestConfigDefaultsToHelp(t *testing.T) {
 	app := &urfavecli.Command{
 		Name:     "app",
 		Writer:   &output,
-		Commands: []*urfavecli.Command{urfave.NewConfigCommand(file, commandDefault())},
+		Commands: []*urfavecli.Command{urfave.NewConfigCommand(file)},
 	}
 	if err := app.Run(context.Background(), []string{"app", "config"}); err != nil {
 		t.Fatal(err)
@@ -100,7 +104,7 @@ func TestConfigShowMissingFile(t *testing.T) {
 	app := &urfavecli.Command{
 		Name:     "app",
 		Writer:   &bytes.Buffer{},
-		Commands: []*urfavecli.Command{urfave.NewConfigCommand(file, commandDefault())},
+		Commands: []*urfavecli.Command{urfave.NewConfigCommand(file)},
 	}
 	err = app.Run(context.Background(), []string{"app", "config", "show"})
 	if err == nil || !strings.Contains(err.Error(), filepath.Join(baseDir, "example", "config.yml")) {
@@ -126,7 +130,7 @@ func TestConfigFlagOverridesPathForSubcommands(t *testing.T) {
 		Name:     "app",
 		Writer:   &output,
 		Flags:    []urfavecli.Flag{urfave.NewConfigFlag(file)},
-		Commands: []*urfavecli.Command{urfave.NewConfigCommand(file, commandDefault())},
+		Commands: []*urfavecli.Command{urfave.NewConfigCommand(file)},
 	}
 	args := []string{"app", "config", "show", "--config", alternative.Path()}
 	if err := app.Run(context.Background(), args); err != nil {
@@ -150,7 +154,7 @@ func TestConfigPath(t *testing.T) {
 		Name:     "app",
 		Writer:   &output,
 		Flags:    []urfavecli.Flag{urfave.NewConfigFlag(file)},
-		Commands: []*urfavecli.Command{urfave.NewConfigCommand(file, commandDefault())},
+		Commands: []*urfavecli.Command{urfave.NewConfigCommand(file)},
 	}
 	want := filepath.Join(t.TempDir(), "custom.yml")
 	if err := app.Run(context.Background(), []string{"app", "config", "path", "--config", want}); err != nil {
@@ -173,7 +177,7 @@ func TestConfigValidate(t *testing.T) {
 	app := &urfavecli.Command{
 		Name:     "app",
 		Writer:   &output,
-		Commands: []*urfavecli.Command{urfave.NewConfigCommand(file, commandDefault())},
+		Commands: []*urfavecli.Command{urfave.NewConfigCommand(file)},
 	}
 	if err := app.Run(context.Background(), []string{"app", "config", "validate"}); err != nil {
 		t.Fatal(err)
@@ -184,7 +188,7 @@ func TestConfigValidate(t *testing.T) {
 }
 
 func TestConfigInitCreatesExclusively(t *testing.T) {
-	file, err := newYAMLConfigFileAt[testConfig](t.TempDir(), "example", "config.yml")
+	file, err := newYAMLConfigFileAt(t.TempDir(), "example", "config.yml", config.Default(commandDefault()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -193,7 +197,7 @@ func TestConfigInitCreatesExclusively(t *testing.T) {
 		return &urfavecli.Command{
 			Name:     "app",
 			Writer:   &output,
-			Commands: []*urfavecli.Command{urfave.NewConfigCommand(file, commandDefault())},
+			Commands: []*urfavecli.Command{urfave.NewConfigCommand(file)},
 		}
 	}
 	if err := newApp().Run(context.Background(), []string{"app", "config", "init"}); err != nil {
@@ -211,8 +215,27 @@ func TestConfigInitCreatesExclusively(t *testing.T) {
 	}
 }
 
+func TestConfigInitUsesZeroValueWithoutConfiguredDefaults(t *testing.T) {
+	file, err := newYAMLConfigFileAt[zeroConfig](t.TempDir(), "example", "config.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	app := &urfavecli.Command{
+		Name:     "app",
+		Writer:   &bytes.Buffer{},
+		Commands: []*urfavecli.Command{urfave.NewConfigCommand(file)},
+	}
+
+	if err := app.Run(context.Background(), []string{"app", "config", "init"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := file.Load(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestConfigInitForceReplacesExistingFile(t *testing.T) {
-	file, err := newYAMLConfigFileAt[testConfig](t.TempDir(), "example", "config.yml")
+	file, err := newYAMLConfigFileAt(t.TempDir(), "example", "config.yml", config.Default(commandDefault()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -224,7 +247,7 @@ func TestConfigInitForceReplacesExistingFile(t *testing.T) {
 	app := &urfavecli.Command{
 		Name:     "app",
 		Writer:   &output,
-		Commands: []*urfavecli.Command{urfave.NewConfigCommand(file, commandDefault())},
+		Commands: []*urfavecli.Command{urfave.NewConfigCommand(file)},
 	}
 	if err := app.Run(context.Background(), []string{"app", "config", "init", "--force"}); err != nil {
 		t.Fatal(err)

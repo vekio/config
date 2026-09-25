@@ -44,7 +44,7 @@ func (f *configFlag[T]) Set(name, value string) error {
 
 // NewConfigCommand creates a reusable config command with show, path, validate,
 // and init subcommands. Invoking config without a subcommand displays help.
-func NewConfigCommand[T config.Validatable](file *config.ConfigFile[T], defaultData T) *urfavecli.Command {
+func NewConfigCommand[T config.Validatable](file *config.ConfigFile[T]) *urfavecli.Command {
 	return &urfavecli.Command{
 		Name:  "config",
 		Usage: "Manage the application configuration",
@@ -52,7 +52,7 @@ func NewConfigCommand[T config.Validatable](file *config.ConfigFile[T], defaultD
 			newShowCommand(file),
 			newPathCommand(file),
 			newValidateCommand(file),
-			newInitCommand(file, defaultData),
+			newInitCommand(file),
 		},
 	}
 }
@@ -82,7 +82,7 @@ func newValidateCommand[T config.Validatable](file *config.ConfigFile[T]) *urfav
 	}
 }
 
-func newInitCommand[T config.Validatable](file *config.ConfigFile[T], defaultData T) *urfavecli.Command {
+func newInitCommand[T config.Validatable](file *config.ConfigFile[T]) *urfavecli.Command {
 	return &urfavecli.Command{
 		Name:  "init",
 		Usage: "Create the default configuration file",
@@ -94,11 +94,12 @@ func newInitCommand[T config.Validatable](file *config.ConfigFile[T], defaultDat
 			},
 		},
 		Action: func(_ context.Context, cmd *urfavecli.Command) error {
+			defaults := file.Defaults()
 			write := file.Create
 			if cmd.Bool("force") {
 				write = file.Save
 			}
-			if err := write(defaultData); err != nil {
+			if err := write(defaults); err != nil {
 				return fmt.Errorf("initialize configuration: %w", err)
 			}
 			_, err := fmt.Fprintln(cmd.Root().Writer, file.Path())

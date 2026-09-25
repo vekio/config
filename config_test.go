@@ -15,6 +15,12 @@ type testConfig struct {
 	Port int    `json:"port" yaml:"port"`
 }
 
+type zeroConfig struct {
+	Enabled bool `yaml:"enabled"`
+}
+
+func (zeroConfig) Validate() error { return nil }
+
 func (c testConfig) Validate() error {
 	if c.Name == "" {
 		return errors.New("name is required")
@@ -25,8 +31,8 @@ func (c testConfig) Validate() error {
 	return nil
 }
 
-func newYAMLConfigFileAt[T config.Validatable](baseDir, appName, fileName string) (*config.ConfigFile[T], error) {
-	file, err := config.NewYAMLConfigFile[T](appName, fileName)
+func newYAMLConfigFileAt[T config.Validatable](baseDir, appName, fileName string, options ...config.Option[T]) (*config.ConfigFile[T], error) {
+	file, err := config.NewYAMLConfigFile[T](appName, fileName, options...)
 	if err != nil {
 		return nil, err
 	}
@@ -36,8 +42,8 @@ func newYAMLConfigFileAt[T config.Validatable](baseDir, appName, fileName string
 	return file, nil
 }
 
-func newJSONConfigFileAt[T config.Validatable](baseDir, appName, fileName string) (*config.ConfigFile[T], error) {
-	file, err := config.NewJSONConfigFile[T](appName, fileName)
+func newJSONConfigFileAt[T config.Validatable](baseDir, appName, fileName string, options ...config.Option[T]) (*config.ConfigFile[T], error) {
+	file, err := config.NewJSONConfigFile[T](appName, fileName, options...)
 	if err != nil {
 		return nil, err
 	}
@@ -50,12 +56,12 @@ func newJSONConfigFileAt[T config.Validatable](baseDir, appName, fileName string
 func TestYAMLLoadOrCreateAndLoad(t *testing.T) {
 	base := t.TempDir()
 	want := testConfig{Name: "api", Port: 8080}
-	file, err := newYAMLConfigFileAt[testConfig](base, "example", "config.yml")
+	file, err := newYAMLConfigFileAt(base, "example", "config.yml", config.Default(want))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	got, err := file.LoadOrCreate(want)
+	got, err := file.LoadOrCreate()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,8 +71,7 @@ func TestYAMLLoadOrCreateAndLoad(t *testing.T) {
 	if file.Path() != filepath.Join(base, "example", "config.yml") {
 		t.Fatalf("Path() = %q", file.Path())
 	}
-	notUsed := testConfig{Name: "other", Port: 1234}
-	got, err = file.LoadOrCreate(notUsed)
+	got, err = file.LoadOrCreate()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,6 +88,39 @@ func TestYAMLLoadOrCreateAndLoad(t *testing.T) {
 	}
 	if got != (testConfig{Name: "worker", Port: 9090}) {
 		t.Fatalf("Load() = %#v", got)
+	}
+}
+
+func TestLoadOrCreateUsesZeroValueWithoutConfiguredDefaults(t *testing.T) {
+	file, err := newYAMLConfigFileAt[zeroConfig](t.TempDir(), "example", "config.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := file.LoadOrCreate()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != (zeroConfig{}) {
+		t.Fatalf("LoadOrCreate() = %#v, want zero value", got)
+	}
+	if file.Defaults() != (zeroConfig{}) {
+		t.Fatalf("Defaults() = %#v, want zero value", file.Defaults())
+	}
+}
+
+func TestLoadOrCreateValidatesDefault(t *testing.T) {
+	file, err := newYAMLConfigFileAt(
+		t.TempDir(),
+		"example",
+		"config.yml",
+		config.Default(testConfig{}),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := file.LoadOrCreate(); err == nil || !strings.Contains(err.Error(), "validate configuration") {
+		t.Fatalf("LoadOrCreate() error = %v", err)
 	}
 }
 
@@ -142,6 +180,13 @@ func TestJSONRoundTripAndExactFilename(t *testing.T) {
 	want := testConfig{Name: "api", Port: 443}
 	if err := file.Save(want); err != nil {
 		t.Fatal(err)
+	}
+	content, err := file.Content()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := string(content), "{\n  \"name\": \"api\",\n  \"port\": 443\n}\n"; got != want {
+		t.Fatalf("Content() = %q, want %q", got, want)
 	}
 	if filepath.Base(file.Path()) != "settings.conf" {
 		t.Fatalf("filename = %q", filepath.Base(file.Path()))
@@ -213,6 +258,13 @@ func TestStrictDecoding(t *testing.T) {
 			},
 			content: `{"name":"api","port":80,"unknown":true}`,
 		},
+		{
+			name: "json duplicate field",
+			newFile: func(path string) (*config.ConfigFile[testConfig], error) {
+				return newJSONConfigFileAt[testConfig](path, "app", "config.json")
+			},
+			content: `{"name":"api","name":"worker","port":80}`,
+		},
 	}
 
 	for _, tt := range tests {
@@ -228,7 +280,7 @@ func TestStrictDecoding(t *testing.T) {
 				t.Fatal(err)
 			}
 			if _, err := file.Load(); err == nil {
-				t.Fatal("Load() succeeded for an unknown field")
+				t.Fatal("Load() succeeded for invalid input")
 			}
 		})
 	}
